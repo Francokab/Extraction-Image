@@ -4,17 +4,6 @@ import numpy as np
 import scipy.signal as sig
 import time
 
-def gaussian_filter(kernel_size, sigma=1, muu=0):
-    #Initializing 
-    gauss = np.zeros((kernel_size,kernel_size))
-    dst = 1/(2 * np.pi * sigma * sigma)
-    k = int((kernel_size - 1)/2) 
-    for i in range(kernel_size):
-        for j in range(kernel_size):
-            gauss[i,j] = dst*np.exp(-(((i+1)-(k+1)) * ((i+1)-(k+1)) + ((j+1)-(k+1)) * ((j+1)-(k+1)))/(2 * sigma * sigma))
-
-    return gauss
-
 def gaussian_kernel(size, sigma=1):
     size = int(size) // 2
     x, y = np.mgrid[-size:size+1, -size:size+1]
@@ -29,6 +18,44 @@ def rgb2gray(rgb):
 
     return gray
 
+def non_max_suppression(img, D):
+    M, N = img.shape
+    Z = np.zeros((M,N))
+    angle = D * 180. / np.pi
+    angle[angle < 0] += 180
+
+    
+    for i in range(1,M-1):
+        for j in range(1,N-1):
+            try:
+                q = 1
+                r = 1
+                
+               #angle 0
+                if (0 <= angle[i,j] < 22.5) or (157.5 <= angle[i,j] <= 180):
+                    q = img[i, j+1]
+                    r = img[i, j-1]
+                #angle 45
+                elif (22.5 <= angle[i,j] < 67.5):
+                    q = img[i+1, j-1]
+                    r = img[i-1, j+1]
+                #angle 90
+                elif (67.5 <= angle[i,j] < 112.5):
+                    q = img[i+1, j]
+                    r = img[i-1, j]
+                #angle 135
+                elif (112.5 <= angle[i,j] < 157.5):
+                    q = img[i-1, j-1]
+                    r = img[i+1, j+1]
+
+                if (img[i,j] >= q) and (img[i,j] >= r):
+                    Z[i,j] = img[i,j]
+                else:
+                    Z[i,j] = 0.0
+
+            except IndexError as e:
+                pass
+    return Z
 
 def logtime(L):
     L.append(time.monotonic())
@@ -60,26 +87,8 @@ gradient = (gradient_x**2 + gradient_y**2)**(1/2)
 theta = np.arctan2(gradient_y,gradient_x)
 logtime(Ltime)
 
-gradient_nonmax_supress = gradient.copy()
+gradient_nonmax_supress = non_max_suppression(gradient,theta)
 nx,ny = gradient.shape
-for i in range(1,nx-1):
-    for j in range(1,ny-1):
-        local_angle = theta[i,j]
-        local_angle = round(4*local_angle/np.pi)%4
-        if local_angle == 0:
-            index1 = (i,j+1)
-            index2 = (i,j-1)
-        elif local_angle == 1:
-            index1 = (i-1,j+1)
-            index2 = (i+1,j-1)
-        elif local_angle == 2:
-            index1 = (i+1,j)
-            index2 = (i-1,j)
-        elif local_angle == 3:
-            index1 = (i+1,j+1)
-            index2 = (i-1,j-1)
-        if gradient[i,j] <= gradient[index1] or gradient[i,j] <= gradient[index2]:
-            gradient_nonmax_supress[i,j] = 0
 logtime(Ltime)
 
 #thresholding
