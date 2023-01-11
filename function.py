@@ -70,7 +70,6 @@ def nonMaxSuppression(img, D):
 
 def thresholding(img, high, low):
     edges = img.copy()
-    nx,ny = edges.shape
     edges[edges>high] = 1.0
     edges[(edges<high) & (edges>low)] = 0.5
     edges[edges<low] = 0.0
@@ -99,12 +98,13 @@ def histeresis(img):
                             elif edges_histeresis[k] == 0.5:
                                 explored[k] = label
                                 queue.append(k)
-                                edges_histeresis[k] == 1.0
+                                edges_histeresis[k] = 1.0
                     except IndexError as e:
                         pass
                 queue.pop(0)
-            
-            label = label + 1
+            else:
+                label = label + 1
+                
     edges_histeresis[edges_histeresis < 1.0] = 0.0
     return edges_histeresis
 
