@@ -5,45 +5,47 @@ import time
 from function import *
 
 
-def logtime(L):
-    L.append(time.monotonic())
-
-Ltime = [time.monotonic()]
+def logtime(name):
+    Ltime.append(time.monotonic_ns())
+    LtimeName.append(name)
+LtimeName = ['start']
+Ltime = [time.monotonic_ns()]
 
 #image reading
-target_file = "images\\dragons.png"
+target_file = "images\\medieval_house.jpg"
 image = mpimg.imread(target_file)
-logtime(Ltime)
+logtime('image reading')
 
 #To gray
 gray_image = imageToGrayNormalize(image)
-logtime(Ltime)
+logtime("gray")
 
 #Blurr
 blurred_image = blurrImage(gray_image)
-logtime(Ltime)
+logtime("blurr")
 
 #Finding the gradient of the image
 gradient, theta = findGradient(blurred_image)
-logtime(Ltime)
+logtime("gradient")
 
-gradient_nonmax_supress = non_max_suppression(gradient,theta)
+#non max suppression
+gradient_nonmax_supress = nonMaxSuppression(gradient,theta)
 nx,ny = gradient.shape
-logtime(Ltime)
+logtime("non max suppression")
 
 #thresholding
-threshold_high = 0.5
-threshold_low = 0.05
-edges = thresholding(gradient_nonmax_supress, threshold_high, threshold_low)
-logtime(Ltime)
+threshold_high = otsuMethod(gradient_nonmax_supress)
+logtime("otsu method")
+edges = thresholding(gradient_nonmax_supress, threshold_high, threshold_high/2)
+logtime("thresholding")
 
 #histeresis
 edges_histeresis = histeresis(edges)
-logtime(Ltime)
+logtime("histeresis")
 
-
+#debug time
 for i in range(1,len(Ltime)):
-    print(Ltime[i]-Ltime[i-1])
+    print((Ltime[i]-Ltime[i-1])*1e-9,"\t",LtimeName[i])
 
 ## plot
 fig1, axs = plt.subplots(2, 2)

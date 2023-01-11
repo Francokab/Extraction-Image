@@ -2,8 +2,11 @@ import numpy as np
 import scipy.signal as sig
 
 def imageToGrayNormalize(img):
-    r, g, b = img[:,:,0], img[:,:,1], img[:,:,2]
-    gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+    if len(img.shape)>2:
+        r, g, b = img[:,:,0], img[:,:,1], img[:,:,2]
+        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+    else:
+        gray = img.copy()
     if gray.max() > 1:
         gray = gray/255
     return gray
@@ -28,7 +31,7 @@ def findGradient(img):
     theta = np.arctan2(gradient_y,gradient_x)
     return (gradient,theta)
     
-def non_max_suppression(img, D):
+def nonMaxSuppression(img, D):
     M, N = img.shape
     Z = np.zeros((M,N))
     angle = D * 180. / np.pi
@@ -68,31 +71,76 @@ def non_max_suppression(img, D):
 def thresholding(img, high, low):
     edges = img.copy()
     nx,ny = edges.shape
-    for i in range(nx):
-        for j in range(ny):
-            if edges[i,j] > high:
-                edges[i,j] = 1.0
-            elif edges[i,j] > low:
-                edges[i,j] = 0.5
-            else:
-                edges[i,j] = 0.0
+    edges[edges>high] = 1.0
+    edges[(edges<high) & (edges>low)] = 0.5
+    edges[edges<low] = 0.0
     return edges
 
 def histeresis(img):
     edges_histeresis = img.copy()
     nx, ny = img.shape
+    explored = np.zeros((nx,ny))
+    queue = []
+    label = 1
     for i in range(nx):
         for j in range(ny):
-            if edges_histeresis[i,j] == 0.5:
-                indexes = []
-                for k in [(i-1,j-1), (i-1,j), (i-1,j+1), (i,j-1), (i,j+1), (i+1,j-1), (i+1,j), (i+1,j+1)]:
-                    if 0 < k[0] and k[0] < nx and 0 < k[1] and k[1] < ny:
-                        indexes.append(k)
-                for k in indexes:
-                    if edges_histeresis[k] == 1.0:
-                        edges_histeresis[i,j] = 1.0
-                    if edges_histeresis[i,j] != 1.0:
-                        edges_histeresis[i,j] = 0.0
+            if edges_histeresis[i,j] == 1.0 and explored[i,j] == 0:
+                explored[i,j] = label
+                queue.append((i,j))
+            
+            while(len(queue)>0):
+                i1, j1 = queue[0]
+                for k in [(i1-1,j1-1), (i1-1,j1), (i1-1,j1+1), (i1,j1-1), (i1,j1+1), (i1+1,j1-1), (i1+1,j1), (i1+1,j1+1)]:
+                    try:
+                        if explored[k] == 0:
+                            if edges_histeresis[k] == 1.0:
+                                explored[k] = label
+                                queue.append(k)
+                            elif edges_histeresis[k] == 0.5:
+                                explored[k] = label
+                                queue.append(k)
+                                edges_histeresis[k] == 1.0
+                    except IndexError as e:
+                        pass
+                queue.pop(0)
+            
+            label = label + 1
+    edges_histeresis[edges_histeresis < 1.0] = 0.0
     return edges_histeresis
+
+def computeOtsuCriteria(im, th):
+    # create the thresholded image
+    thresholded_im = np.zeros(im.shape)
+    thresholded_im[im >= th] = 1
+
+    # compute weights
+    nb_pixels = im.size
+    nb_pixels1 = np.count_nonzero(thresholded_im)
+    weight1 = nb_pixels1 / nb_pixels
+    weight0 = 1 - weight1
+
+    # if one the classes is empty, eg all pixels are below or above the threshold, that threshold will not be considered
+    # in the search for the best threshold
+    if weight1 == 0 or weight0 == 0:
+        return np.inf
+
+    # find all pixels belonging to each class
+    val_pixels1 = im[thresholded_im == 1]
+    val_pixels0 = im[thresholded_im == 0]
+
+    # compute variance of these classes
+    var0 = np.var(val_pixels0) if len(val_pixels0) > 0 else 0
+    var1 = np.var(val_pixels1) if len(val_pixels1) > 0 else 0
+
+    return weight0 * var0 + weight1 * var1
+
+def otsuMethod(im):
+    # testing all thresholds from 0 to the maximum of the image
+    threshold_range = np.arange(0,1,0.05)
+    criterias = [computeOtsuCriteria(im, th) for th in threshold_range]
+
+    # best threshold is the one minimizing the Otsu criteria
+    best_threshold = threshold_range[np.argmin(criterias)]
+    return best_threshold
 
 
