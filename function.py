@@ -143,4 +143,33 @@ def otsuMethod(im):
     best_threshold = threshold_range[np.argmin(criterias)]
     return best_threshold
 
+def dericheFilter(img,a,b,c1,axis):
+    if axis == 0:
+        invAxis = 1
+    else:
+        invAxis = 0
+    y1 = sig.lfilter([a[0],a[1]],[1,-b[0],-b[1]],img,axis=axis)
+    y2 = sig.lfilter([0,a[2],a[3]],[1,-b[0],-b[1]],np.flip(img,axis=axis),axis=axis)
+    y2 = np.flip(y2, axis=axis)
+    # nx, ny = img.shape
+    # y1 = np.zeros(img.shape)
+    # if axis == 1:
+    #     for i in range(nx):
+    #         X=[0,0]
+    #         Y=[0,0,0]
+    #         for j in range(ny):
+    #             X[0] = img[i,j]
+    #             Y[0] = a[0] * X[0] + a[1] * X[1]
+
+
+    theta = c1*(y1+y2)
+
+    return theta
+    
+def fullDericheFilter(img,a1,a2,b,c):
+    theta1 = dericheFilter(img,a1,b,c[0],1)
+    theta2 = dericheFilter(theta1,a2,b,c[1],0)
+    return theta2
+
+
 
