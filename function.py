@@ -22,13 +22,32 @@ def blurrImage(img,kernel_size = 5, sigma=1):
     gauss = gaussian_kernel(kernel_size,sigma=sigma)
     return sig.convolve2d(img,gauss,'same')
 
-def findGradient(img):
-    Kx = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-    Ky = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
+def gradientOperator(gradientType = "regular"):
+    if gradientType == "regular":
+        Kx = np.array([[-1, 0, 1]])
+        Ky = np.array([[1], [0], [-1]])
+    elif gradientType == "roberts":
+        Kx = np.array([[1, 0], [0, -1]])
+        Ky = np.array([[0, 1], [-1, 0]])
+    elif gradientType == "prewitt":
+        Kx = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]])
+        Ky = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]])
+    elif gradientType == "sobel":
+        Kx = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]])
+        Ky = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
+    else:
+        raise ValueError
+    return (Kx,Ky)
+
+
+def findGradient(img, gradientType = "regular"):
+    Kx, Ky = gradientOperator(gradientType=gradientType)
     gradient_x = sig.convolve2d(img,Kx,'same')
     gradient_y = sig.convolve2d(img,Ky,'same')
     gradient = (gradient_x**2 + gradient_y**2)**(1/2)
     theta = np.arctan2(gradient_y,gradient_x)
+    if gradientType == "roberts":
+        theta = theta - 3*np.pi/4
     return (gradient,theta)
     
 def nonMaxSuppression(img, D):

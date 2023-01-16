@@ -44,11 +44,6 @@ def deriche(img,alpha):
     k = cst/(1+alpha*b[0]+b[1])
     a1 = [k, k*b[0]*(alpha-1)/2, k*b[0]*(alpha+1)/2, k*b[1]]
     a0 = [0, 1, -1, 0]
-    print(b)
-    print(cst)
-    print(k)
-    print(a1)
-    print(a0)
 
     #Blurr
     blurred_image = fullDericheFilter(img,a1,a1,b,[1,1])
