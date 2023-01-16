@@ -1,5 +1,12 @@
 import numpy as np
 import scipy.signal as sig
+from decoratorGUI import *
+import matplotlib.image as mpimg
+
+@imageReadingGUI
+def readImageFromFile(target_file):
+    image = mpimg.imread(target_file)
+    return image
 
 def imageToGrayNormalize(img):
     if len(img.shape)>2:
