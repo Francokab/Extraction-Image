@@ -39,7 +39,6 @@ def gradientOperator(gradientType = "regular"):
         raise ValueError
     return (Kx,Ky)
 
-
 def findGradient(img, gradientType = "regular"):
     Kx, Ky = gradientOperator(gradientType=gradientType)
     gradient_x = sig.convolve2d(img,Kx,'same')

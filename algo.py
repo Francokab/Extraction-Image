@@ -36,7 +36,8 @@ def cannyWithOtsu(img):
     #histeresis
     edges_histeresis = histeresis(edges)
 
-    return edges_histeresis
+    return [blurred_image, gradient, theta, gradient_nonmax_supress, edges, edges_histeresis]
+    #return edges_histeresis
 
 def deriche(img,alpha):
     b = [2*np.exp(-alpha), -np.exp(-2*alpha)]
@@ -64,5 +65,5 @@ def deriche(img,alpha):
     #histeresis
     edges_histeresis = histeresis(edges)
 
-    #return [blurred_image,gradient_x,gradient_y,gradient,theta,gradient_nonmax_supress,edges,edges_histeresis]
-    return edges_histeresis
+    return [blurred_image,gradient_x,gradient_y,gradient,theta,gradient_nonmax_supress,edges,edges_histeresis]
+    #return edges_histeresis

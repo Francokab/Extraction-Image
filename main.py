@@ -19,15 +19,18 @@ image = mpimg.imread(target_file)
 #To gray
 gray_image = imageToGrayNormalize(image)
 
-img_deriche = deriche(gray_image,1.4)
+img_deriche = cannyWithOtsu(gray_image)
 
 #debug time
 # for i in range(1,len(Ltime)):
 #     print((Ltime[i]-Ltime[i-1])*1e-9,"\t",LtimeName[i])
 
+print("test")
 ## plot
-fig1, axs = plt.subplots(1, 2)
-axs[0].imshow(gray_image,"gray")
-axs[1].imshow(img_deriche,"gray")
+fig1, axs = plt.subplots(2, 2)
+axs[0,0].imshow(gray_image,"gray")
+axs[0,1].imshow(img_deriche[1],"gray")
+axs[1,0].imshow(img_deriche[3],"gray")
+axs[1,1].imshow(img_deriche[5],"gray")
 plt.show()
 
