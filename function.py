@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.signal as sig
+from decorator import timer
 
+@timer
 def imageToGrayNormalize(img):
     if len(img.shape)>2:
         r, g, b = img[:,:,0], img[:,:,1], img[:,:,2]
@@ -11,6 +13,7 @@ def imageToGrayNormalize(img):
         gray = gray/255
     return gray
 
+@timer
 def gaussian_kernel(size, sigma=1):
     size = int(size) // 2
     x, y = np.mgrid[-size:size+1, -size:size+1]
@@ -18,10 +21,12 @@ def gaussian_kernel(size, sigma=1):
     g =  np.exp(-((x**2 + y**2) / (2.0*sigma**2))) * normal
     return g
 
+@timer
 def blurrImage(img,kernel_size = 5, sigma=1):
     gauss = gaussian_kernel(kernel_size,sigma=sigma)
     return sig.convolve2d(img,gauss,'same')
 
+@timer
 def gradientOperator(gradientType = "regular"):
     if gradientType == "regular":
         Kx = np.array([[-1, 0, 1]])
@@ -39,6 +44,7 @@ def gradientOperator(gradientType = "regular"):
         raise ValueError
     return (Kx,Ky)
 
+@timer
 def findGradient(img, gradientType = "regular"):
     Kx, Ky = gradientOperator(gradientType=gradientType)
     gradient_x = sig.convolve2d(img,Kx,'same')
@@ -48,7 +54,8 @@ def findGradient(img, gradientType = "regular"):
     if gradientType == "roberts":
         theta = theta - 3*np.pi/4
     return (gradient,theta)
-    
+
+@timer    
 def nonMaxSuppression(img, D):
     M, N = img.shape
     Z = np.zeros((M,N))
@@ -86,6 +93,7 @@ def nonMaxSuppression(img, D):
                 pass
     return Z
 
+@timer
 def thresholding(img, high, low):
     edges = img.copy()
     edges[edges>high] = 1.0
@@ -93,6 +101,7 @@ def thresholding(img, high, low):
     edges[edges<low] = 0.0
     return edges
 
+@timer
 def histeresis(img):
     edges_histeresis = img.copy()
     nx, ny = img.shape
@@ -152,6 +161,7 @@ def computeOtsuCriteria(im, th):
 
     return weight0 * var0 + weight1 * var1
 
+@timer
 def otsuMethod(im):
     # testing all thresholds from 0 to the maximum of the image
     threshold_range = np.arange(0,1,0.05)
@@ -161,6 +171,7 @@ def otsuMethod(im):
     best_threshold = threshold_range[np.argmin(criterias)]
     return best_threshold
 
+@timer
 def dericheFilter(img,a,b,c1,axis):
     if axis == 0:
         invAxis = 1
@@ -183,11 +194,29 @@ def dericheFilter(img,a,b,c1,axis):
     theta = c1*(y1+y2)
 
     return theta
-    
+
+@timer    
 def fullDericheFilter(img,a1,a2,b,c):
     theta1 = dericheFilter(img,a1,b,c[0],1)
     theta2 = dericheFilter(theta1,a2,b,c[1],0)
     return theta2
 
+@timer
+def Laplacian(img):
+    Kxx = np.array([[1, -2, 1]])
+    Kxy = 0.25 * np.array([[-1, 0, 1], [0, 0, 0], [1, 0, -1]])
+    Kyy = np.array([[1], [-2], [1]])
+    Lxx = sig.convolve2d(img,Kxx,'same')
+    Lxy = sig.convolve2d(img,Kxy,'same')
+    Lyy = sig.convolve2d(img,Kyy,'same')
+    Kx, Ky = gradientOperator()
+    Lx = sig.convolve2d(img,Kx,'same')
+    Ly = sig.convolve2d(img,Ky,'same')
+    return (Lx, Ly, Lxx, Lxy, Lyy)
 
+@timer
+def Laplacian2(img):
+    K = np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]])
+    Lap = sig.convolve2d(img,K,'same')
+    return (Lap)
 

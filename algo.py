@@ -1,4 +1,5 @@
 from function import *
+from decorator import timer
 
 def canny(img, th_high, th_low):
     #Blurr
@@ -19,12 +20,13 @@ def canny(img, th_high, th_low):
 
     return edges_histeresis
 
-def cannyWithOtsu(img):
+@timer
+def cannyWithOtsu(img, gradientType = "regular", sigma = 1):
     #Blurr
-    blurred_image = blurrImage(img)
+    blurred_image = blurrImage(img, sigma = sigma)
 
     #Finding the gradient of the image
-    gradient, theta = findGradient(blurred_image)
+    gradient, theta = findGradient(blurred_image, gradientType = gradientType)
 
     #non max suppression
     gradient_nonmax_supress = nonMaxSuppression(gradient,theta)
