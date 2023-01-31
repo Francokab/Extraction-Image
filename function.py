@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.signal as sig
 from decorator import timer
+from math import floor, ceil
 
 @timer
 def imageToGrayNormalize(img):
@@ -219,4 +220,30 @@ def Laplacian2(img):
     K = np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]])
     Lap = sig.convolve2d(img,K,'same')
     return (Lap)
+
+@timer
+def SUSANpart1(img, rmax = 3.4, t = 0.2):
+    imax, jmax = img.shape
+    halfWindowSize = floor(rmax)
+    mask = np.zeros((2*halfWindowSize+1,2*halfWindowSize+1))
+    for index, value in np.ndenumerate(mask):
+        if np.linalg.norm(np.array(index) - np.array([halfWindowSize,halfWindowSize])) < rmax:
+            mask[index] = 1
+    print(mask)
+    sliding_window = np.lib.stride_tricks.sliding_window_view(np.pad(img,halfWindowSize),mask.shape)
+    output = np.zeros(img.shape)
+    i = 0
+    for index0, value0 in np.ndenumerate(img):
+        view = sliding_window[index0]
+        output[index0] = np.sum(mask * np.exp(- ((view - value0) / t)**6))
+    return output
+
+@timer
+def SUSANpart2(img):
+    output = np.zeros(img.shape)
+    g = 3* img.argmax()/4
+    for index, x in np.ndenumerate(img):
+        if x<g:
+            output[index] = g - x
+    return output
 
