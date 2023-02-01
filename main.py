@@ -11,15 +11,26 @@ image = mpimg.imread(target_file)
 #To gray
 gray_image = imageToGrayNormalize(image)
 
-output_image = SUSANpart1(gray_image)
 
-output_image2 = SUSANpart2(output_image)
+#Blurr
+blurred_image = blurrImage(gray_image, sigma = 1.4)
+
+#Finding the gradient of the image
+gradient, theta = findGradient(blurred_image)
+
+#non max suppression
+gradient_nonmax_supress = nonMaxSuppression(gradient,theta)
+
+#thresholding
+threshold_high = otsuMethod(gradient_nonmax_supress)
+edges = adaptiveThresholding(gradient_nonmax_supress,-0.05,70)
 
 ## plot
-fig1, axs = plt.subplots(1, 3)
-axs[0].imshow(gray_image,"gray")
-axs[1].imshow(output_image,"gray")
-axs[2].imshow(output_image2,"gray")
+fig1, axs = plt.subplots(1, 1)
+# axs[0].imshow(gray_image,"gray")
+# axs[1].imshow(gradient_nonmax_supress,"gray")
+axs.imshow(edges,"gray")
+
 
 
 plt.show()

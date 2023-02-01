@@ -95,11 +95,11 @@ def nonMaxSuppression(img, D):
     return Z
 
 @timer
-def thresholding(img, high, low):
+def thresholding(img, high, low, out1 = 1.0, out2 = 0.5, out3 = 0.0):
     edges = img.copy()
-    edges[edges>high] = 1.0
-    edges[(edges<high) & (edges>low)] = 0.5
-    edges[edges<low] = 0.0
+    edges[edges>high] = out1
+    edges[(edges<high) & (edges>low)] = out2
+    edges[edges<low] = out3
     return edges
 
 @timer
@@ -222,17 +222,15 @@ def Laplacian2(img):
     return (Lap)
 
 @timer
-def SUSANpart1(img, rmax = 3.4, t = 0.2):
+def SUSANpart1(img, rmax = 3.4, t = 0.1):
     imax, jmax = img.shape
     halfWindowSize = floor(rmax)
     mask = np.zeros((2*halfWindowSize+1,2*halfWindowSize+1))
     for index, value in np.ndenumerate(mask):
         if np.linalg.norm(np.array(index) - np.array([halfWindowSize,halfWindowSize])) < rmax:
             mask[index] = 1
-    print(mask)
     sliding_window = np.lib.stride_tricks.sliding_window_view(np.pad(img,halfWindowSize),mask.shape)
     output = np.zeros(img.shape)
-    i = 0
     for index0, value0 in np.ndenumerate(img):
         view = sliding_window[index0]
         output[index0] = np.sum(mask * np.exp(- ((view - value0) / t)**6))
@@ -247,3 +245,15 @@ def SUSANpart2(img):
             output[index] = g - x
     return output
 
+@timer
+def adaptiveThresholding(img, C, radius):
+    imax, jmax = img.shape
+    halfWindowSize = floor(radius)
+    output = np.zeros(img.shape)
+    for index0, value0 in np.ndenumerate(img):
+        i0, j0 = index0
+        view = img[max(0,i0-halfWindowSize):min(imax,i0+halfWindowSize+1), max(0,j0-halfWindowSize):min(jmax,j0+halfWindowSize+1)]
+        mean = np.mean(view) - C
+        if mean < value0:
+            output[index0] = 1.0
+    return output
