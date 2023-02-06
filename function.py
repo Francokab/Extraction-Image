@@ -4,10 +4,10 @@ from decorator import timer
 from math import floor, ceil
 
 @timer
-def imageToGrayNormalize(img):
+def imageToGrayNormalize(img, cr = 0.2126, cg = 0.7152, cb = 0.0722):
     if len(img.shape)>2:
         r, g, b = img[:,:,0], img[:,:,1], img[:,:,2]
-        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        gray = cr * r + cg * g + cb * b
     else:
         gray = img.copy()
     if gray.max() > 1:
