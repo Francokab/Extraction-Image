@@ -1,4 +1,3 @@
-from msilib.schema import ComboBox
 from PyQt5.QtCore import QDateTime, Qt, QTimer
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateTimeEdit,
         QDial, QDialog, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
@@ -14,9 +13,9 @@ import matplotlib.pyplot as plt
 
 target_file = "images\\Sunflowers_in_July.jpg"
 
-class GroupImageGUI(QGroupBox):
+class ProcessWidget(QGroupBox):
     def __init__(self, parent=None):
-        super(GroupImageGUI, self).__init__(parent)
+        super(ProcessWidget, self).__init__(parent)
         
         imgProcessComboBox = QComboBox()
         imgProcessComboBox.addItem(" ---- ")
@@ -70,6 +69,6 @@ class GroupImageGUI(QGroupBox):
 if __name__ == '__main__':
     app = QApplication([])
     apply_stylesheet(app, theme='dark_teal.xml')
-    Gui = GroupImageGUI()
+    Gui = ProcessWidget()
     Gui.show()
     sys.exit(app.exec())
