@@ -49,7 +49,8 @@ class ProcessTab(QWidget):
                 try: previousWidget.updateImageOut.disconnect()
                 except TypeError: pass
                 previousWidget.updateImageOut.connect(widget.setImageIn)
-                previousWidget.updateImageOut.emit(previousWidget.imageOut)
+                try: previousWidget.updateImageOut.emit(previousWidget.imageOut)
+                except TypeError: pass
 
             previousWidget = widget
 

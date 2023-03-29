@@ -1,3 +1,4 @@
+from time import sleep
 from PyQt5.QtCore import QDateTime, Qt, QTimer, pyqtSignal,  pyqtSlot
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateTimeEdit,
         QDial, QDialog, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
@@ -13,6 +14,14 @@ import matplotlib.pyplot as plt
 
 target_file = "images\\dragons.png"
 
+def clearLayout(layout):
+    if layout is not None:
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget() is not None:
+                child.widget().deleteLater()
+            elif child.layout() is not None:
+                clearLayout(child.layout())
 class ProcessWidget(QGroupBox):
     updateImageOut = pyqtSignal(list)
 
@@ -38,6 +47,7 @@ class ProcessWidget(QGroupBox):
         self.imageOut = None
         self.imageIn = None
 
+        self.bottomLayout = QGridLayout()
         self.resetBottomLayout()
 
         self.mainLayout = QVBoxLayout()
@@ -49,7 +59,7 @@ class ProcessWidget(QGroupBox):
         self.setLayout(self.mainLayout)
 
     def resetBottomLayout(self):
-        self.bottomLayout = QGridLayout()
+        clearLayout(self.bottomLayout)
         self.bottomLayout.addWidget(QLabel("Info"),0,1)
         self.bottomLayout.setColumnStretch(0,1)
         self.bottomLayout.setColumnStretch(1,1)
@@ -60,12 +70,28 @@ class ProcessWidget(QGroupBox):
         if imgProcessName != " ---- ":
             self.func = FUNCTION_DICT[imgProcessName]
             if self.func.type == "imgReading":
-                #widget = QFileDialog()
-                #self.mainLayout.addWidget(widget)
                 pass
+            elif self.func.type == "noParameter":
+                pass
+            elif self.func.type == "parameter":
+                index = 0
+                for param in self.func.parameters:
+                    if param.type == "image":
+                        pass
+                    elif param.type == "int":
+                        spinBox = QSpinBox()
+                        spinBox.valueChanged.connect(param.setValue)
+                        spinBox.setValue(1)
+                        layout = QHBoxLayout()
+                        layout.addWidget(QLabel(param.name))
+                        layout.addWidget(spinBox)
+                        self.bottomLayout.addLayout(layout,1+index//2,index%2)
+                        index += 1
+
             
         else:
             self.func = None
+        print("new")
         self.doProcess()
         
     def doProcess(self):

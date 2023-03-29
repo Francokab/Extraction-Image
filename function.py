@@ -31,8 +31,18 @@ def gaussian_kernel(size, sigma=1):
     g =  np.exp(-((x**2 + y**2) / (2.0*sigma**2))) * normal
     return g
 
+@parameterGUI
 @timer
 def blurrImage(img,kernel_size = 5, sigma=1):
+    """
+    img, image
+    kernel_size, int
+    sigma, int
+    end_parameter
+    
+    Bonjour
+    Test
+    """
     gauss = gaussian_kernel(kernel_size,sigma=sigma)
     return sig.convolve2d(img,gauss,'same')
 
