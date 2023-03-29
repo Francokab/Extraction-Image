@@ -1,4 +1,5 @@
 from function import *
+from decorator import timer
 
 def canny(img, th_high, th_low):
     #Blurr
@@ -19,12 +20,13 @@ def canny(img, th_high, th_low):
 
     return edges_histeresis
 
-def cannyWithOtsu(img):
+@timer
+def cannyWithOtsu(img, gradientType = "regular", sigma = 1):
     #Blurr
-    blurred_image = blurrImage(img)
+    blurred_image = blurrImage(img, sigma = sigma)
 
     #Finding the gradient of the image
-    gradient, theta = findGradient(blurred_image)
+    gradient, theta = findGradient(blurred_image, gradientType = gradientType)
 
     #non max suppression
     gradient_nonmax_supress = nonMaxSuppression(gradient,theta)
@@ -36,7 +38,8 @@ def cannyWithOtsu(img):
     #histeresis
     edges_histeresis = histeresis(edges)
 
-    return edges_histeresis
+    return [blurred_image, gradient, theta, gradient_nonmax_supress, edges, edges_histeresis]
+    #return edges_histeresis
 
 def deriche(img,alpha):
     b = [2*np.exp(-alpha), -np.exp(-2*alpha)]
@@ -44,11 +47,6 @@ def deriche(img,alpha):
     k = cst/(1+alpha*b[0]+b[1])
     a1 = [k, k*b[0]*(alpha-1)/2, k*b[0]*(alpha+1)/2, k*b[1]]
     a0 = [0, 1, -1, 0]
-    print(b)
-    print(cst)
-    print(k)
-    print(a1)
-    print(a0)
 
     #Blurr
     blurred_image = fullDericheFilter(img,a1,a1,b,[1,1])
@@ -69,5 +67,5 @@ def deriche(img,alpha):
     #histeresis
     edges_histeresis = histeresis(edges)
 
-    #return [blurred_image,gradient_x,gradient_y,gradient,theta,gradient_nonmax_supress,edges,edges_histeresis]
-    return edges_histeresis
+    return [blurred_image,gradient_x,gradient_y,gradient,theta,gradient_nonmax_supress,edges,edges_histeresis]
+    #return edges_histeresis

@@ -2,23 +2,28 @@ import numpy as np
 import scipy.signal as sig
 from decoratorGUI import *
 import matplotlib.image as mpimg
+from decorator import timer
+from math import floor, ceil
 
 @imageReadingGUI
+@timer
 def readImageFromFile(target_file):
     image = mpimg.imread(target_file)
     return image
 
 @noParameterGUI
-def imageToGrayNormalize(img):
+@timer
+def imageToGrayNormalize(img, cr = 0.2126, cg = 0.7152, cb = 0.0722):
     if len(img.shape)>2:
         r, g, b = img[:,:,0], img[:,:,1], img[:,:,2]
-        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        gray = cr * r + cg * g + cb * b
     else:
         gray = img.copy()
     if gray.max() > 1:
         gray = gray/255
     return gray
 
+@timer
 def gaussian_kernel(size, sigma=1):
     size = int(size) // 2
     x, y = np.mgrid[-size:size+1, -size:size+1]
@@ -26,19 +31,41 @@ def gaussian_kernel(size, sigma=1):
     g =  np.exp(-((x**2 + y**2) / (2.0*sigma**2))) * normal
     return g
 
+@timer
 def blurrImage(img,kernel_size = 5, sigma=1):
     gauss = gaussian_kernel(kernel_size,sigma=sigma)
     return sig.convolve2d(img,gauss,'same')
 
-def findGradient(img):
-    Kx = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-    Ky = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
+@timer
+def gradientOperator(gradientType = "regular"):
+    if gradientType == "regular":
+        Kx = np.array([[-1, 0, 1]])
+        Ky = np.array([[1], [0], [-1]])
+    elif gradientType == "roberts":
+        Kx = np.array([[1, 0], [0, -1]])
+        Ky = np.array([[0, 1], [-1, 0]])
+    elif gradientType == "prewitt":
+        Kx = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]])
+        Ky = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]])
+    elif gradientType == "sobel":
+        Kx = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]])
+        Ky = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
+    else:
+        raise ValueError
+    return (Kx,Ky)
+
+@timer
+def findGradient(img, gradientType = "regular"):
+    Kx, Ky = gradientOperator(gradientType=gradientType)
     gradient_x = sig.convolve2d(img,Kx,'same')
     gradient_y = sig.convolve2d(img,Ky,'same')
     gradient = (gradient_x**2 + gradient_y**2)**(1/2)
     theta = np.arctan2(gradient_y,gradient_x)
+    if gradientType == "roberts":
+        theta = theta - 3*np.pi/4
     return (gradient,theta)
-    
+
+@timer    
 def nonMaxSuppression(img, D):
     M, N = img.shape
     Z = np.zeros((M,N))
@@ -76,13 +103,15 @@ def nonMaxSuppression(img, D):
                 pass
     return Z
 
-def thresholding(img, high, low):
+@timer
+def thresholding(img, high, low, out1 = 1.0, out2 = 0.5, out3 = 0.0):
     edges = img.copy()
-    edges[edges>high] = 1.0
-    edges[(edges<high) & (edges>low)] = 0.5
-    edges[edges<low] = 0.0
+    edges[edges>high] = out1
+    edges[(edges<high) & (edges>low)] = out2
+    edges[edges<low] = out3
     return edges
 
+@timer
 def histeresis(img):
     edges_histeresis = img.copy()
     nx, ny = img.shape
@@ -142,6 +171,7 @@ def computeOtsuCriteria(im, th):
 
     return weight0 * var0 + weight1 * var1
 
+@timer
 def otsuMethod(im):
     # testing all thresholds from 0 to the maximum of the image
     threshold_range = np.arange(0,1,0.05)
@@ -151,6 +181,7 @@ def otsuMethod(im):
     best_threshold = threshold_range[np.argmin(criterias)]
     return best_threshold
 
+@timer
 def dericheFilter(img,a,b,c1,axis):
     if axis == 0:
         invAxis = 1
@@ -173,11 +204,65 @@ def dericheFilter(img,a,b,c1,axis):
     theta = c1*(y1+y2)
 
     return theta
-    
+
+@timer    
 def fullDericheFilter(img,a1,a2,b,c):
     theta1 = dericheFilter(img,a1,b,c[0],1)
     theta2 = dericheFilter(theta1,a2,b,c[1],0)
     return theta2
 
+@timer
+def Laplacian(img):
+    Kxx = np.array([[1, -2, 1]])
+    Kxy = 0.25 * np.array([[-1, 0, 1], [0, 0, 0], [1, 0, -1]])
+    Kyy = np.array([[1], [-2], [1]])
+    Lxx = sig.convolve2d(img,Kxx,'same')
+    Lxy = sig.convolve2d(img,Kxy,'same')
+    Lyy = sig.convolve2d(img,Kyy,'same')
+    Kx, Ky = gradientOperator()
+    Lx = sig.convolve2d(img,Kx,'same')
+    Ly = sig.convolve2d(img,Ky,'same')
+    return (Lx, Ly, Lxx, Lxy, Lyy)
 
+@timer
+def Laplacian2(img):
+    K = np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]])
+    Lap = sig.convolve2d(img,K,'same')
+    return (Lap)
 
+@timer
+def SUSANpart1(img, rmax = 3.4, t = 0.1):
+    imax, jmax = img.shape
+    halfWindowSize = floor(rmax)
+    mask = np.zeros((2*halfWindowSize+1,2*halfWindowSize+1))
+    for index, value in np.ndenumerate(mask):
+        if np.linalg.norm(np.array(index) - np.array([halfWindowSize,halfWindowSize])) < rmax:
+            mask[index] = 1
+    sliding_window = np.lib.stride_tricks.sliding_window_view(np.pad(img,halfWindowSize),mask.shape)
+    output = np.zeros(img.shape)
+    for index0, value0 in np.ndenumerate(img):
+        view = sliding_window[index0]
+        output[index0] = np.sum(mask * np.exp(- ((view - value0) / t)**6))
+    return output
+
+@timer
+def SUSANpart2(img):
+    output = np.zeros(img.shape)
+    g = 3* img.argmax()/4
+    for index, x in np.ndenumerate(img):
+        if x<g:
+            output[index] = g - x
+    return output
+
+@timer
+def adaptiveThresholding(img, C, radius):
+    imax, jmax = img.shape
+    halfWindowSize = floor(radius)
+    output = np.zeros(img.shape)
+    for index0, value0 in np.ndenumerate(img):
+        i0, j0 = index0
+        view = img[max(0,i0-halfWindowSize):min(imax,i0+halfWindowSize+1), max(0,j0-halfWindowSize):min(jmax,j0+halfWindowSize+1)]
+        mean = np.mean(view) - C
+        if mean < value0:
+            output[index0] = 1.0
+    return output
