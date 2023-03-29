@@ -1,8 +1,17 @@
 import numpy as np
 import scipy.signal as sig
+from decoratorGUI import *
+import matplotlib.image as mpimg
 from decorator import timer
 from math import floor, ceil
 
+@imageReadingGUI
+@timer
+def readImageFromFile(target_file):
+    image = mpimg.imread(target_file)
+    return image
+
+@noParameterGUI
 @timer
 def imageToGrayNormalize(img, cr = 0.2126, cg = 0.7152, cb = 0.0722):
     if len(img.shape)>2:
