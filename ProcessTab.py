@@ -42,8 +42,17 @@ class ProcessTab(QWidget):
             # remove it from the gui
             widgetToRemove.setParent(None)
 
+        previousWidget = None
         for widget in self.widgetList:
             self.mainLayout.addWidget(widget,1)
+            if previousWidget != None and widget != self.addWidget:
+                try: previousWidget.updateImageOut.disconnect()
+                except TypeError: pass
+                previousWidget.updateImageOut.connect(widget.setImageIn)
+                previousWidget.updateImageOut.emit(previousWidget.imageOut)
+
+            previousWidget = widget
+
             
     
     @pyqtSlot()

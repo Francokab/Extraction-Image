@@ -8,6 +8,7 @@ def readImageFromFile(target_file):
     image = mpimg.imread(target_file)
     return image
 
+@noParameterGUI
 def imageToGrayNormalize(img):
     if len(img.shape)>2:
         r, g, b = img[:,:,0], img[:,:,1], img[:,:,2]

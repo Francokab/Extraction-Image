@@ -20,7 +20,7 @@ class MainGUI(QTabWidget):
         self.tab1Scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.tab1Scroll.setWidgetResizable(True)
         self.tab1Scroll.setWidget(self.tab1)
-        self.setGeometry(400, 100, 1000, 900)
+        self.setGeometry(0, 0, 1920, 1080)
         self.addTab(self.tab1Scroll,"Tab1")
 
 

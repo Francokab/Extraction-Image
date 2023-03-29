@@ -16,3 +16,9 @@ def imageReadingGUI(func):
     func1.type = "imgReading"
     FUNCTION_DICT[func1.name] = func1
     return func
+
+def noParameterGUI(func):
+    func1 = imgProcessingFunc(func)
+    func1.type = "noParameter"
+    FUNCTION_DICT[func1.name] = func1
+    return func
