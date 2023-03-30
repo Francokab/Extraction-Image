@@ -29,7 +29,7 @@ class MainGUI(QTabWidget):
 
 if __name__ == '__main__':
     app = QApplication([])
-    apply_stylesheet(app, theme='dark_teal.xml')
+    #apply_stylesheet(app, theme='dark_teal.xml')
     Gui = MainGUI()
     Gui.show()
     sys.exit(app.exec())

@@ -1,4 +1,3 @@
-
 FUNCTION_DICT = dict()
 
 class imgProcessingFunc:
@@ -15,16 +14,45 @@ class imgProcessingFunc:
 class parameter:
     def __init__(self,docString):
         # format in the doc
-        # name, type
+        # name; display_name; type; default; [list, list]
         # end_parameter
-        docString = docString.split(", ")
+        docString = docString.split("; ")
         self.name = docString[0]
-        self.type = docString[1]
+        self.displayName = docString[1]
+        self.type = docString[2]
+        self.default = None
+        if (len(docString)>3):
+            self.setDefault(docString[3])
+        if self.type == "list":
+            self.list = []
+            self.setList(docString[4])
         self.value = None
+        self.setValue(self.default)
+
     
+    def setDefault(self, value):
+        if self.type == "image":
+            pass
+        elif self.type == "int":
+            self.default = int(value)
+        elif self.type == "float":
+            self.default = float(value)
+        elif self.type == "list":
+            self.default = value
+
     def setValue(self, value):
-        #print(value)
-        self.value = value
+        if self.type == "image":
+            self.value = value
+        elif self.type == "int":
+            self.value = int(value)
+        elif self.type == "float":
+            self.value = float(value)
+        elif self.type == "list":
+            self.value = value
+    
+    def setList(self, docString):
+        self.list = docString.strip("[]").split(', ')
+
         
 
 def imageReadingGUI(func):

@@ -35,9 +35,9 @@ def gaussian_kernel(size, sigma=1):
 @timer
 def blurrImage(img,kernel_size = 5, sigma=1):
     """
-    img, image
-    kernel_size, int
-    sigma, int
+    img; Image; image
+    kernel_size; Taille du noyau; int; 5
+    sigma; Sigma; float; 1
     end_parameter
     
     Bonjour
@@ -64,8 +64,17 @@ def gradientOperator(gradientType = "regular"):
         raise ValueError
     return (Kx,Ky)
 
+@parameterGUI
 @timer
 def findGradient(img, gradientType = "regular"):
+    """
+    img; Image; image
+    gradientType; Type de Gradient; list; regular; [regular, roberts, prewitt, sobel]
+    end_parameter
+    
+    Bonjour
+    Test
+    """
     Kx, Ky = gradientOperator(gradientType=gradientType)
     gradient_x = sig.convolve2d(img,Kx,'same')
     gradient_y = sig.convolve2d(img,Ky,'same')
@@ -75,8 +84,17 @@ def findGradient(img, gradientType = "regular"):
         theta = theta - 3*np.pi/4
     return (gradient,theta)
 
+@parameterGUI
 @timer    
 def nonMaxSuppression(img, D):
+    """
+    img; Gradient; image
+    D; Theta; image 
+    end_parameter
+    
+    Bonjour
+    Test
+    """
     M, N = img.shape
     Z = np.zeros((M,N))
     angle = D * 180. / np.pi
