@@ -12,8 +12,9 @@ from function import *
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
+from QDoubleSlider import QDoubleSlider
 
-target_file = "images\\medieval_house.jpg"
+target_file = "images\\dragons.png"
 
 def clearLayout(layout):
     if layout is not None:
@@ -33,7 +34,8 @@ class ProcessWidget(QGroupBox):
         imgProcessComboBox = QComboBox()
         imgProcessComboBox.addItem(" ---- ")
         imgProcessComboBox.addItems(FUNCTION_DICT.keys())
-        imgProcessComboBox.activated[str].connect(self.changeImgProcess)
+        imgProcessComboBox.currentTextChanged.connect(self.changeImgProcess)
+        imgProcessComboBox.setToolTip("Selectionne une fonction à appliquer à l'étape précedente")
         
         #create the event that check when to run the function
         self.func = None
@@ -45,6 +47,7 @@ class ProcessWidget(QGroupBox):
 
         #Label for the combo box
         imgProcessLabel = QLabel("Function : ")
+        imgProcessLabel.setToolTip("Selectionne une fonction à appliquer à l'étape précedente")
         imgProcessLabel.setBuddy(imgProcessComboBox)
 
         #set the layout for the combo box
@@ -84,52 +87,67 @@ class ProcessWidget(QGroupBox):
         self.resetBottomLayout()
         if imgProcessName != " ---- ":
             self.func = FUNCTION_DICT[imgProcessName]
+            self.topLayout.itemAt(2).widget().setToolTip(self.func.name)
             if self.func.type == "imgReading":
-                pass
-            elif self.func.type == "noParameter":
                 pass
             elif self.func.type == "parameter":
                 index = 0
                 for param in self.func.parameters:
                     if param.type == "image":
-                        pass
+                        haveWidget = False
                     elif param.type == "int":
-                        spinBox = QSpinBox()
-                        spinBox.valueChanged.connect(param.setValue)
-                        spinBox.setValue(param.default)
-                        spinBox.valueChanged.connect(self.doProcessLater.set)
-                        layout = QHBoxLayout()
-                        layout.addWidget(QLabel(param.displayName))
-                        layout.addWidget(spinBox)
-                        self.bottomLayout.addLayout(layout,1+index//2,index%2)
-                        index += 1
+                        widget = QSpinBox()
+                        widget.valueChanged.connect(param.setValue)
+                        widget.setValue(param.default)
+                        widget.setMinimum(param.min)
+                        widget.setMaximum(param.max)
+                        widget.valueChanged.connect(self.doProcessLater.set)
+                        haveWidget = True
+
                     elif param.type == "float":
-                        spinBox = QDoubleSpinBox()
-                        spinBox.setSingleStep(0.1)
-                        spinBox.setStepType(QDoubleSpinBox.StepType.AdaptiveDecimalStepType)
-                        spinBox.valueChanged.connect(param.setValue)
-                        spinBox.setValue(param.default)
-                        spinBox.valueChanged.connect(self.doProcessLater.set)
-                        layout = QHBoxLayout()
-                        layout.addWidget(QLabel(param.displayName))
-                        layout.addWidget(spinBox)
-                        self.bottomLayout.addLayout(layout,1+index//2,index%2)
-                        index += 1
+                        widget = QDoubleSpinBox()
+                        widget.setSingleStep(0.1)
+                        widget.setStepType(QDoubleSpinBox.StepType.AdaptiveDecimalStepType)
+                        widget.valueChanged.connect(param.setValue)
+                        widget.setValue(param.default)
+                        widget.setMinimum(param.min)
+                        widget.setMaximum(param.max)
+                        widget.valueChanged.connect(self.doProcessLater.set)
+                        haveWidget = True
+                    
+                    elif param.type == "slider":
+                        widget = QDoubleSlider(3,Qt.Horizontal)
+                        widget.doubleValueChanged.connect(param.setValue)
+                        widget.doubleValueChanged.connect(print)
+                        widget.setValue(param.default)
+                        widget.setMinimum(param.min)
+                        widget.setMaximum(param.max)
+                        widget.doubleValueChanged.connect(self.doProcessLater.set)
+                        haveWidget = True
+
                     elif param.type == "list":
-                        comboBox = QComboBox()
-                        comboBox.addItems(param.list)
-                        comboBox.currentTextChanged.connect(param.setValue)
-                        comboBox.setCurrentText(param.default)
-                        comboBox.currentTextChanged.connect(self.doProcessLater.set)
+                        widget = QComboBox()
+                        widget.addItems(param.list)
+                        widget.currentTextChanged.connect(param.setValue)
+                        widget.setCurrentText(param.default)
+                        widget.currentTextChanged.connect(self.doProcessLater.set)
+                        haveWidget = True
+                    else:
+                        haveWidget = False
+
+                    if haveWidget:
                         layout = QHBoxLayout()
-                        layout.addWidget(QLabel(param.displayName))
-                        layout.addWidget(comboBox)
+                        label = QLabel(param.displayName)
+                        label.setToolTip(param.description)
+                        layout.addWidget(label)
+                        layout.addWidget(widget)
                         self.bottomLayout.addLayout(layout,1+index//2,index%2)
                         index += 1
 
             
         else:
             self.func = None
+            self.topLayout.itemAt(2).widget().setToolTip("Selectionne une fonction à appliquer à l'étape précedente")
         self.doProcessLater.set()
         
 
@@ -139,8 +157,6 @@ class ProcessWidget(QGroupBox):
                 self.imageOut = self.imageIn
             elif self.func.type == "imgReading":
                 self.imageOut = [self.func(target_file)]
-            elif self.func.type == "noParameter":
-                self.imageOut = [self.func(self.imageIn[0])]
             elif self.func.type == "parameter":
                 imageParamList = [param for param in self.func.parameters if param.type == "image"]
                 for i, param in enumerate(imageParamList):
@@ -158,12 +174,15 @@ class ProcessWidget(QGroupBox):
     def plot(self):
         self.figure.clear()
         # create an axis
-        ax = self.figure.add_subplot(111)
-        # plot data
-        ax.imshow(self.imageOut[0], "gray")
-        ax.xaxis.set_tick_params(bottom=False, labelbottom=False)
-        ax.yaxis.set_tick_params(left=False, labelleft=False)
-        self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        NImage = len(self.imageOut)
+        for i in range(NImage):
+            ax = self.figure.add_subplot(NImage,1,i+1)
+            # plot data
+            ax.imshow(self.imageOut[0], "gray")
+            ax.xaxis.set_tick_params(bottom=False, labelbottom=False)
+            ax.yaxis.set_tick_params(left=False, labelleft=False)
+            self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        
         # refresh canvas
         self.canvas.draw()
         self.updateImageOut.emit(self.imageOut)

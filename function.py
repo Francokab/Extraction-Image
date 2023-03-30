@@ -11,9 +11,19 @@ def readImageFromFile(target_file):
     image = mpimg.imread(target_file)
     return image
 
-@noParameterGUI
+@parameterGUI
 @timer
 def imageToGrayNormalize(img, cr = 0.2126, cg = 0.7152, cb = 0.0722):
+    """Transforme en Noir et Blanc
+    img; Image; Image en entrée; image
+    cr; Coef Rouge; proportion de de rouge qui et pris en compte pour calculer le gris; slider; 0.2126; [0.0, 1.0]
+    cg; Coef Vert; proportion de de vert qui et pris en compte pour calculer le gris; slider; 0.7152; [0.0, 1.0]
+    cb; Coef Bleu; proportion de de bleu qui et pris en compte pour calculer le gris; slider; 0.0722; [0.0, 1.0]
+    end_parameter
+    
+    Bonjour
+    Test
+    """
     if len(img.shape)>2:
         r, g, b = img[:,:,0], img[:,:,1], img[:,:,2]
         gray = cr * r + cg * g + cb * b
@@ -34,10 +44,10 @@ def gaussian_kernel(size, sigma=1):
 @parameterGUI
 @timer
 def blurrImage(img,kernel_size = 5, sigma=1):
-    """
-    img; Image; image
-    kernel_size; Taille du noyau; int; 5
-    sigma; Sigma; float; 1
+    """Flou gaussien
+    img; Image; Image en entrée; image
+    kernel_size; Taille du noyau; Taille de la matrice gaussienne à appliquer; int; 5; [1, 31]
+    sigma; Sigma; Intensité du flou crée par la matrice; float; 1; [0.01, 10]
     end_parameter
     
     Bonjour
@@ -67,9 +77,9 @@ def gradientOperator(gradientType = "regular"):
 @parameterGUI
 @timer
 def findGradient(img, gradientType = "regular"):
-    """
-    img; Image; image
-    gradientType; Type de Gradient; list; regular; [regular, roberts, prewitt, sobel]
+    """Calculer le gradient
+    img; Image; Image en entrée; image
+    gradientType; Type de Gradient; Type d'oppérateur de gradient à utiliser pour calculer le gradient; list; regular; [regular, roberts, prewitt, sobel]
     end_parameter
     
     Bonjour
@@ -87,9 +97,9 @@ def findGradient(img, gradientType = "regular"):
 @parameterGUI
 @timer    
 def nonMaxSuppression(img, D):
-    """
-    img; Gradient; image
-    D; Theta; image 
+    """Suppression des non-Maximum-locaux
+    img; Gradient; Gradient de l'image; image
+    D; Theta; Orientation de l'image; image 
     end_parameter
     
     Bonjour
@@ -131,8 +141,18 @@ def nonMaxSuppression(img, D):
                 pass
     return Z
 
+@parameterGUI
 @timer
 def thresholding(img, high, low, out1 = 1.0, out2 = 0.5, out3 = 0.0):
+    """Double seuillage de l'immage
+    img; Image; Image en entrée; image
+    high; Seuil Haut; Les valeurs au dessus de ce seuil vont être mis à 1; float; 0.5; [0.0, 1.0]
+    low; Seuil Bas; Les valeurs en dessous de ce seuil vont être mis à 0; float; 0.3; [0.0, 1.0]
+    end_parameter
+    
+    Bonjour
+    Test
+    """
     edges = img.copy()
     edges[edges>high] = out1
     edges[(edges<high) & (edges>low)] = out2
