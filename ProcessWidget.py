@@ -13,8 +13,10 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
 from QDoubleSlider import QDoubleSlider
+from FullScreenImage import FullScreenImage
 
 target_file = "images\\dragons.png"
+
 
 def clearLayout(layout):
     if layout is not None:
@@ -65,12 +67,14 @@ class ProcessWidget(QGroupBox):
         #create the layout for the parameters widgets
         self.bottomLayout = QGridLayout()
         self.resetBottomLayout()
+        self.docInfo = QLabel()
 
         #assemble all the layout together
         self.mainLayout = QVBoxLayout()
         self.mainLayout.addLayout(self.topLayout)
         self.mainLayout.addWidget(self.canvas)
         self.mainLayout.addLayout(self.bottomLayout)
+        self.mainLayout.addWidget(self.docInfo)
         self.mainLayout.addStretch(1)
 
         self.setLayout(self.mainLayout)
@@ -78,25 +82,31 @@ class ProcessWidget(QGroupBox):
 
     def resetBottomLayout(self):
         clearLayout(self.bottomLayout)
+        fullScreenButton = QPushButton("Full Screen")
+        fullScreenButton.clicked.connect(self.putImageInFullScreen)
+        self.bottomLayout.addWidget(fullScreenButton,0,0)
         self.bottomLayout.addWidget(QLabel("Info"),0,1)
         self.bottomLayout.setColumnStretch(0,1)
         self.bottomLayout.setColumnStretch(1,1)
 
-
     def changeImgProcess(self, imgProcessName):
         self.resetBottomLayout()
         if imgProcessName != " ---- ":
-            self.func = FUNCTION_DICT[imgProcessName]
+            self.func = deepcopy(FUNCTION_DICT[imgProcessName])
             self.topLayout.itemAt(2).widget().setToolTip(self.func.name)
             if self.func.type == "imgReading":
                 pass
             elif self.func.type == "parameter":
+                self.docInfo.setText(self.func.doc)
                 index = 0
+                imageIndex = 0
                 for param in self.func.parameters:
                     if param.type == "image":
+                        param.setValue(self.imageIn[imageIndex])
                         haveWidget = False
                     elif param.type == "int":
                         widget = QSpinBox()
+                        param.widget = widget
                         widget.valueChanged.connect(param.setValue)
                         widget.setValue(param.default)
                         widget.setMinimum(param.min)
@@ -106,7 +116,9 @@ class ProcessWidget(QGroupBox):
 
                     elif param.type == "float":
                         widget = QDoubleSpinBox()
+                        param.widget = widget
                         widget.setSingleStep(0.1)
+                        widget.setDecimals(3)
                         widget.setStepType(QDoubleSpinBox.StepType.AdaptiveDecimalStepType)
                         widget.valueChanged.connect(param.setValue)
                         widget.setValue(param.default)
@@ -117,8 +129,8 @@ class ProcessWidget(QGroupBox):
                     
                     elif param.type == "slider":
                         widget = QDoubleSlider(3,Qt.Horizontal)
+                        param.widget = widget
                         widget.doubleValueChanged.connect(param.setValue)
-                        widget.doubleValueChanged.connect(print)
                         widget.setValue(param.default)
                         widget.setMinimum(param.min)
                         widget.setMaximum(param.max)
@@ -127,11 +139,32 @@ class ProcessWidget(QGroupBox):
 
                     elif param.type == "list":
                         widget = QComboBox()
+                        param.widget = widget
                         widget.addItems(param.list)
                         widget.currentTextChanged.connect(param.setValue)
                         widget.setCurrentText(param.default)
                         widget.currentTextChanged.connect(self.doProcessLater.set)
                         haveWidget = True
+
+                    elif param.type == "special_bool":
+                        widget = QCheckBox()
+                        param.widget = widget
+                        widget.stateChanged.connect(param.setValue)
+                        param.input = [_param for _stringParam in param.input for _param in self.func.parameters if _param.name == _stringParam]
+                        param.secondaryFunction = deepcopy(SECONDARY_FUNCTION_DICT[param.secondaryFunction])
+                        param.output = [_param for _stringParam in param.output for _param in self.func.parameters if _param.name == _stringParam]
+
+                        x = lambda: param.secondaryFunction(*[_param.value for _param in param.input])
+                        y = lambda *_output: [_param.widget.setValue(output) for _param, output in zip(param.output,_output)]
+                        z = lambda *_: y(*x())
+                        z()
+                        
+                        widget.stateChanged.connect(z)
+                        [widget.stateChanged.connect(lambda _bool, _param = _param: _param.widget.setEnabled(not _bool)) for _param in param.output]
+                        widget.setChecked(param.default)
+                        widget.stateChanged.connect(self.doProcessLater.set)
+                        haveWidget = True
+
                     else:
                         haveWidget = False
 
@@ -147,12 +180,14 @@ class ProcessWidget(QGroupBox):
             
         else:
             self.func = None
+            self.docInfo.setText("")
             self.topLayout.itemAt(2).widget().setToolTip("Selectionne une fonction à appliquer à l'étape précedente")
         self.doProcessLater.set()
         
 
     def doProcess(self):
         if self.doProcessLater.is_set():
+            self.setBackgroundGreen()
             if self.func == None:
                 self.imageOut = self.imageIn
             elif self.func.type == "imgReading":
@@ -161,7 +196,7 @@ class ProcessWidget(QGroupBox):
                 imageParamList = [param for param in self.func.parameters if param.type == "image"]
                 for i, param in enumerate(imageParamList):
                     param.setValue(self.imageIn[i])
-                inputDict = {param.name:param.value for param in self.func.parameters}
+                inputDict = {param.name:param.value for param in self.func.parameters if param.type not in ["special_bool"]}
                 self.imageOut = self.func(**inputDict)
                 if type(self.imageOut) == tuple:
                     self.imageOut = list(self.imageOut)
@@ -170,7 +205,20 @@ class ProcessWidget(QGroupBox):
             
             self.plot()
             self.doProcessLater.clear()
-                  
+            self.setBackgroundBlanc()
+
+    def setBackgroundGreen(self):
+        #self.setStyleSheet('background-color: limegreen')
+        self.figure.patch.set_facecolor('xkcd:mint green')
+        self.canvas.draw()
+        self.repaint()
+
+    def setBackgroundBlanc(self):
+        #self.setStyleSheet('background-color: white')
+        self.figure.patch.set_facecolor('white')
+        self.canvas.draw()
+        self.repaint()
+
     def plot(self):
         self.figure.clear()
         # create an axis
@@ -178,7 +226,7 @@ class ProcessWidget(QGroupBox):
         for i in range(NImage):
             ax = self.figure.add_subplot(NImage,1,i+1)
             # plot data
-            ax.imshow(self.imageOut[0], "gray")
+            ax.imshow(self.imageOut[i], "gray")
             ax.xaxis.set_tick_params(bottom=False, labelbottom=False)
             ax.yaxis.set_tick_params(left=False, labelleft=False)
             self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
@@ -192,7 +240,9 @@ class ProcessWidget(QGroupBox):
         self.imageIn = imageIn
         self.doProcessLater.set()
         
-
+    def putImageInFullScreen(self):
+        self.fullScreen = FullScreenImage(self.imageOut)
+        self.fullScreen.show()
 
 if __name__ == '__main__':
     app = QApplication([])

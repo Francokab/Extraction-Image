@@ -148,6 +148,7 @@ def thresholding(img, high, low, out1 = 1.0, out2 = 0.5, out3 = 0.0):
     img; Image; Image en entrée; image
     high; Seuil Haut; Les valeurs au dessus de ce seuil vont être mis à 1; float; 0.5; [0.0, 1.0]
     low; Seuil Bas; Les valeurs en dessous de ce seuil vont être mis à 0; float; 0.3; [0.0, 1.0]
+    otsu; Méthode d'Otsu; Utiliser la méthode d'Otsu pour trouver le meilleur seuil; special_bool; True; [otsuMethod, img, high:low]
     end_parameter
     
     Bonjour
@@ -159,8 +160,16 @@ def thresholding(img, high, low, out1 = 1.0, out2 = 0.5, out3 = 0.0):
     edges[edges<low] = out3
     return edges
 
+@parameterGUI
 @timer
 def histeresis(img):
+    """Histeresis
+    img; Image; Image en entrée; image
+    end_parameter
+    
+    Bonjour
+    Test
+    """
     edges_histeresis = img.copy()
     nx, ny = img.shape
     explored = np.zeros((nx,ny))
@@ -219,6 +228,7 @@ def computeOtsuCriteria(im, th):
 
     return weight0 * var0 + weight1 * var1
 
+@secondaryFunction
 @timer
 def otsuMethod(im):
     # testing all thresholds from 0 to the maximum of the image
@@ -227,7 +237,7 @@ def otsuMethod(im):
 
     # best threshold is the one minimizing the Otsu criteria
     best_threshold = threshold_range[np.argmin(criterias)]
-    return best_threshold
+    return best_threshold, best_threshold/2
 
 @timer
 def dericheFilter(img,a,b,c1,axis):

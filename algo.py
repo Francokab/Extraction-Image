@@ -32,8 +32,8 @@ def cannyWithOtsu(img, gradientType = "regular", sigma = 1):
     gradient_nonmax_supress = nonMaxSuppression(gradient,theta)
 
     #thresholding
-    threshold_high = otsuMethod(gradient_nonmax_supress)
-    edges = thresholding(gradient_nonmax_supress, threshold_high, threshold_high/2)
+    threshold_high, threshold_low = otsuMethod(gradient_nonmax_supress)
+    edges = thresholding(gradient_nonmax_supress, threshold_high, threshold_low)
 
     #histeresis
     edges_histeresis = histeresis(edges)
@@ -61,8 +61,8 @@ def deriche(img,alpha):
     gradient_nonmax_supress = nonMaxSuppression(gradient,theta)
 
     #thresholding
-    threshold_high = otsuMethod(gradient_nonmax_supress)
-    edges = thresholding(gradient_nonmax_supress, threshold_high, threshold_high/2)
+    threshold_high, threshold_low = otsuMethod(gradient_nonmax_supress)
+    edges = thresholding(gradient_nonmax_supress, threshold_high, threshold_low)
 
     #histeresis
     edges_histeresis = histeresis(edges)
