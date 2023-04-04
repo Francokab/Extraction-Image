@@ -2,6 +2,7 @@ from copy import deepcopy
 FUNCTION_DICT = dict()
 SECONDARY_FUNCTION_DICT = dict()
 ALGO_DICT = dict()
+IMAGE_DICT = dict()
 
 class imgProcessingFunc:
     def __init__(self,func) -> None:

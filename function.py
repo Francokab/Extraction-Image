@@ -5,8 +5,24 @@ import matplotlib.image as mpimg
 from decorator import timer
 from math import floor, ceil
 
+imageList = [
+    ("Bike","images\\Bikesgray.jpg"),
+    ("Dragons","images\\dragons.png"),
+    ("Lizard","images\\Large_Scaled_Forest_Lizard.jpg"),
+    ("Lizard Reduced","images\\Large_Scaled_Forest_Lizard_reduced.jpg"),
+    ("Le Chat Botte","images\\Lechatbotte.jpg"),
+    ("Medieval House","images\\medieval_house.jpg"),
+    ("Sunflower","images\\Sunflowers_in_July.jpg"),
+    ("Valve","images\\Valve_original.png")
+]
+
+for image in imageList:
+    IMAGE_DICT[image[0]] = image[1]
+
 algoList = [
-    algo("canny","Filtre de Canny", "", ["readImageFromFile","imageToGrayNormalize","blurrImage","findGradient","nonMaxSuppression","thresholding","histeresis"])
+    algo("naive","Aproche naïve", "", ["imageToGrayNormalize","blurrImage","findGradient"]),
+    algo("canny","Filtre de Canny", "", ["imageToGrayNormalize","blurrImage","findGradient","nonMaxSuppression","thresholding","histeresis"]),
+    algo("deriche","Filtre de Deriche", "", ["imageToGrayNormalize","dericheBlurr","dericheGradient","nonMaxSuppression","thresholding","histeresis"])
 ]
 
 for _algo in algoList:
@@ -63,7 +79,9 @@ def blurrImage(img,kernel_size = 5, sigma=1):
     end_parameter
 
     Cette fonction floutte la fonction que l'on a en entrée à l'aide d'un flou gaussien. 
+
     Pour faire ça la fonction utilise une convolution entre l'image et une matrice gaussienne, la conséquence est que chaque point de l'image se retrouve diluer dans les points voisins. 
+    
     En théorie un flou gaussien prend en compte tout les points de l'image mais en pratique comme le poids de chaque des points descends de manière exponentielle avec la distance (c'est la partie gaussienne), on peut ce permettre de n'utiliser que une petite matrice.
     """
     gauss = gaussian_kernel(kernel_size,sigma=sigma)
@@ -95,8 +113,22 @@ def findGradient(img, gradientType = "regular"):
     gradientType; Type de Gradient; Type d'oppérateur de gradient à utiliser pour calculer le gradient; list; regular; [regular, roberts, prewitt, sobel]
     end_parameter
     
-    Bonjour
-    Test
+    Cette fonction permet de trouver le gradient de l'images, c'est à dire comment l'intensité d'un pixel change par rapport à celle des pixel voisins.
+
+    Pour faire cela la fonction va d'abord calculer le gradient selon x et selon y en en faisant une convolution avec un opérateur. \
+Il y a 4 opérateur qui sont communément utiliser :
+    L'opérateur régulier : [-1, 0, 1]
+    L'opérateur de Roberts : [1,  0]
+                                            [0, -1]
+    L'opérateur de Prewitt : [1, 0, -1]
+                                           [1, 0, -1]
+                                           [1, 0, -1]
+    L'opérateur de Sobel : [1, 0, -1]
+                                         [2, 0, -2]
+                                         [1, 0, -1]
+    Pour trouver le gradient selon l'autre direction, il suffit de prendre la transposé.
+    
+    Une fois que l'on a le gradient selon x et selon y on peut trouver la norme et l'orientation du gradient avec (norme = sqrt(x^2+y^2) et orientation = arctan2(y,x))
     """
     Kx, Ky = gradientOperator(gradientType=gradientType)
     gradient_x = sig.convolve2d(img,Kx,'same')
@@ -115,8 +147,13 @@ def nonMaxSuppression(img, D):
     D; Theta; Orientation de l'image; image 
     end_parameter
     
-    Bonjour
-    Test
+    Apres avoir calculer le gradient d'une image, on se retrouve avec une image qui a des pixels non nuls au \
+endroit où il a des changements d'intensité, c'est à dire les bords. Mais ces changements d'intensité ce font \
+sur une distance de plusieurs pixels, or on voudrait montrait les bords comme ayant une épaisseur de seulment un pixel.
+
+    Cette fonction va donc chercher à désépaissir les bords en ne gardant que les maximums locaux et notament on va \
+utiliser les informations d'orientations que l'on a obtenue en calculant le gradient pour faire la recherche de maximum local \
+seulement selon la diraction du gradient.
     """
     M, N = img.shape
     Z = np.zeros((M,N))
@@ -164,8 +201,19 @@ def thresholding(img, high, low, out1 = 1.0, out2 = 0.5, out3 = 0.0):
     otsu; Méthode d'Otsu; Utiliser la méthode d'Otsu pour trouver le meilleur seuil; special_bool; True; [otsuMethod, img, high:low]
     end_parameter
     
-    Bonjour
-    Test
+    Une fois que l'on a des bords de 1 d'épaisseur, il faut que l'on supprime les bords qui sont considérés trop mineur, \
+ceux pour qui le gradient était faible.
+
+    Pour faire cela on va faire un seuillage, c'est à dire que l'on va supprimer toute les valeurs qui sont en dessous d'un \
+certain seuil, et mettre à 1 ceux qui sont au dessus de ce seuil.
+    En faisant à double seuillage, on a deux seuil: les valeurs au dessus du seuil haut sont 1, les valeurs en dessous du seuil bas sont 0, \
+et les valeurs intermédiaire sont mis à la valeurs arbitraires de 0.5. On va ensuite utilisé l'histeresis pour dire si on va garder ou pas ces valeurs intermédiaires
+
+    Une méthode existante pour trouver une valeur de seuil automatiquement est la méthode d'Otsu. La méthode d'Otsu \
+cherche à trouver le seuil qui va minimiser la variance de l'intensité intra-classe, c'est à dire qu'il va trouver \
+le seuil pour lequel la variance en intensité pour les points qui sont en dessous du seuil et la variance en intensité \
+pour les points qui sont au dessus du seuil va être minimiser.
+    Il est commun de prendre ensuite le seuil bas comme étant la moitié du seuil que l'on a trouvé avec la méthode d'Otsu
     """
     edges = img.copy()
     edges[edges>high] = out1
@@ -180,8 +228,10 @@ def histeresis(img):
     img; Image; Image en entrée; image
     end_parameter
     
-    Bonjour
-    Test
+    Une Fois que l'on a fais un double seuillage, on se retrouve avec des valeurs intermédiaire, ils correspondent au \
+bords dont on est pas sur s'il sont assez important pour être garder. Pour pouvoir décider lesquelles de ces valeurs \
+intermédiaires on va garder, on va regarder si elles sont connectées à d'autre bord qui ont des valeurs de 1. Ainsi \
+vont être gardée seulement les bords intermédiaires qui font partie d'un bord important.
     """
     edges_histeresis = img.copy()
     nx, ny = img.shape
@@ -333,7 +383,6 @@ et calculer la norme et l'orientation du gradient pour chaque pixel
     theta = np.arctan2(gradient_y,gradient_x)
 
     return (gradient, theta)
-
 
 @timer
 def Laplacian(img):
