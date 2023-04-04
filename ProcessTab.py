@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QCheckBox, QComboBox, QD
 from qt_material import apply_stylesheet
 import sys
 from ProcessWidget import ProcessWidget
+from decoratorGUI import *
 
 
 class AddWidget(QWidget):
@@ -26,48 +27,105 @@ class ProcessTab(QWidget):
     def __init__(self, parent=None):
         super(ProcessTab, self).__init__(parent)
 
+        self.topLayout = QHBoxLayout()
+        applyButton = QPushButton("Appliquer l'algorithme sélectionné")
+        applyButton.clicked.connect(self.applyAlgo)
+        self.topLayout.addWidget(applyButton)
+
+        algoComboBox = QComboBox()
+        algoComboBox.addItem(" ---- ")
+        self.algo = None
+        algoComboBox.addItems(ALGO_DICT.keys())
+        algoComboBox.currentTextChanged.connect(self.algoChange)
+        algoComboBox.setToolTip("Selectionne un algorithme à tester")
+        self.topLayout.addWidget(algoComboBox)
+        self.topLayout.addStretch(2)
+
         self.mainLayout = QHBoxLayout()
-        self.setLayout(self.mainLayout)
+        self.mainMainLayout = QVBoxLayout()
+        self.mainMainLayout.addLayout(self.topLayout)
+        self.mainMainLayout.addLayout(self.mainLayout)
+        self.setLayout(self.mainMainLayout)
         
         self.widgetList = []
         self.addWidget = AddWidget()
         self.addWidget.button.clicked.connect(self.addProcess)
-        self.widgetList.append(self.addWidget)
-        
-        self.updateLayoutToList()
+        self.addWidget.setFixedWidth(267)
+        self.mainLayout.addWidget(self.addWidget)
+        self.mainLayout.addStretch(1)
 
-    def updateLayoutToList(self):
-        for i in reversed(range(self.mainLayout.count())): 
-            widgetToRemove = self.mainLayout.itemAt(i).widget()
-            # remove it from the layout list
-            self.mainLayout.removeWidget(widgetToRemove)
-            # remove it from the gui
-            widgetToRemove.setParent(None)
 
-        previousWidget = None
-        for widget in self.widgetList:
-            self.mainLayout.addWidget(widget,1)
-            if previousWidget != None and widget != self.addWidget:
-                try: previousWidget.updateImageOut.disconnect()
-                except TypeError: pass
-                previousWidget.updateImageOut.connect(widget.setImageIn)
-                try: previousWidget.updateImageOut.emit(previousWidget.imageOut)
-                except TypeError: pass
+    def appendToWidgetList(self, widget):
+        if len(self.widgetList)>0:
+            previousWidget = self.widgetList[-1]
+        else:
+            previousWidget = None
+        self.widgetList.append(widget)
 
-            previousWidget = widget
-
+        if previousWidget is not None:
+            previousWidget.updateImageOut.connect(widget.setImageIn)
+            try: previousWidget.updateImageOut.emit(previousWidget.imageOut)
+            except TypeError: pass
+        self.mainLayout.insertWidget(len(self.widgetList)-1,widget)
             
     
     @pyqtSlot()
     def addProcess(self):
         processWidget = ProcessWidget()
+        processWidget.setFixedWidth(267)
         processWidget.saveImageOut.connect(self.savedImageHandler)
-        self.widgetList.insert(len(self.widgetList)-1,processWidget)
-        self.updateLayoutToList()
+        processWidget.closeWidget.connect(self.closeWidgetHandler)
+        self.appendToWidgetList(processWidget)
+
+    def removeFromWidgetList(self,index):
+        if index>0:
+            previousWidget = self.widgetList[index-1]
+        else:
+            previousWidget = None
+        if index<len(self.widgetList)-1:
+            nextWidget = self.widgetList[index+1]
+        else:
+            nextWidget = None
+        widget = self.widgetList.pop(index)
+        self.mainLayout.removeWidget(widget)
+        widget.deleteLater()
+        
+        if previousWidget is not None and nextWidget is not None:
+            previousWidget.updateImageOut.connect(nextWidget.setImageIn)
+            try: previousWidget.updateImageOut.emit(previousWidget.imageOut)
+            except TypeError: pass
+
+    def deleteAllWidgetList(self):
+        while (len(self.widgetList)>0):
+            self.removeFromWidgetList(len(self.widgetList)-1)
+
+    def algoChange(self,algoString):
+        if algoString != " ---- ":
+            self.algo = ALGO_DICT[algoString]
+        else:
+            self.algo = None
+
+    def applyAlgo(self, algo):
+        if self.algo is not None:
+            self.deleteAllWidgetList()
+            print(FUNCTION_DICT)
+            for funcString in self.algo.functionList:
+                self.addProcess()
+                self.widgetList[-1].imgProcessComboBox.setCurrentText(FUNCTION_DICT[funcString].displayName)
 
     @pyqtSlot(list)
     def savedImageHandler(self,image):
         self.saveImageOut.emit(image)
+    
+    def closeWidgetHandler(self):
+        i = 0
+        while (len(self.widgetList)>i):
+            if self.widgetList[i].widgetWantClose:
+                self.removeFromWidgetList(i)
+            else:
+                i = i + 1
+
+
 
 
 

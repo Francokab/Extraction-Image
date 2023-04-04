@@ -29,16 +29,31 @@ def clearLayout(layout):
 class ProcessWidget(QGroupBox):
     updateImageOut = pyqtSignal(list)
     saveImageOut = pyqtSignal(list)
+    closeWidget = pyqtSignal()
 
     def __init__(self, parent=None):
         super(ProcessWidget, self).__init__(parent)
         
+        #Create the top of the top of the layer
+        resetButton = QPushButton("Reset")
+        resetButton.clicked.connect(lambda:self.changeImgProcess(self.imgProcessName))
+
+        removeButton = QPushButton("Fermer")
+        self.widgetWantClose = False
+        removeButton.clicked.connect(self._closeWidget)
+
+        topTopLayout = QHBoxLayout()
+        topTopLayout.addWidget(resetButton)
+        topTopLayout.addWidget(removeButton)
+
+
         #Create the select box at the top of the widget
-        imgProcessComboBox = QComboBox()
-        imgProcessComboBox.addItem(" ---- ")
-        imgProcessComboBox.addItems(FUNCTION_DICT.keys())
-        imgProcessComboBox.currentTextChanged.connect(self.changeImgProcess)
-        imgProcessComboBox.setToolTip("Selectionne une fonction à appliquer à l'étape précedente")
+        self.imgProcessComboBox = QComboBox()
+        self.imgProcessComboBox.addItem(" ---- ")
+        self.imgProcessName = " ---- "
+        self.imgProcessComboBox.addItems([FUNCTION_DICT[key].displayName for key in FUNCTION_DICT.keys()])
+        self.imgProcessComboBox.currentTextChanged.connect(self.changeImgProcess)
+        self.imgProcessComboBox.setToolTip("Selectionne une fonction à appliquer à l'étape précedente")
         
         #create the event that check when to run the function
         self.func = None
@@ -51,13 +66,13 @@ class ProcessWidget(QGroupBox):
         #Label for the combo box
         imgProcessLabel = QLabel("Function : ")
         imgProcessLabel.setToolTip("Selectionne une fonction à appliquer à l'étape précedente")
-        imgProcessLabel.setBuddy(imgProcessComboBox)
+        imgProcessLabel.setBuddy(self.imgProcessComboBox)
 
         #set the layout for the combo box
         self.topLayout = QHBoxLayout()
         self.topLayout.addStretch(1)
         self.topLayout.addWidget(imgProcessLabel)
-        self.topLayout.addWidget(imgProcessComboBox)
+        self.topLayout.addWidget(self.imgProcessComboBox)
 
         #create the widget for the image
         self.figure = plt.figure()
@@ -73,6 +88,7 @@ class ProcessWidget(QGroupBox):
 
         #assemble all the layout together
         self.mainLayout = QVBoxLayout()
+        self.mainLayout.addLayout(topTopLayout)
         self.mainLayout.addLayout(self.topLayout)
         self.mainLayout.addWidget(self.canvas)
         self.mainLayout.addLayout(self.bottomLayout)
@@ -94,9 +110,10 @@ class ProcessWidget(QGroupBox):
         self.bottomLayout.setColumnStretch(1,1)
 
     def changeImgProcess(self, imgProcessName):
+        self.imgProcessName = imgProcessName
         self.resetBottomLayout()
         if imgProcessName != " ---- ":
-            self.func = deepcopy(FUNCTION_DICT[imgProcessName])
+            self.func = deepcopy(*[FUNCTION_DICT[key] for key in FUNCTION_DICT if FUNCTION_DICT[key].displayName == imgProcessName])
             self.topLayout.itemAt(2).widget().setToolTip(self.func.name)
             if self.func.type == "imgReading":
                 pass
@@ -106,7 +123,8 @@ class ProcessWidget(QGroupBox):
                 imageIndex = 0
                 for param in self.func.parameters:
                     if param.type == "image":
-                        param.setValue(self.imageIn[imageIndex])
+                        try :param.setValue(self.imageIn[imageIndex])
+                        except TypeError: param.setValue(None)
                         haveWidget = False
                     elif param.type == "int":
                         widget = QSpinBox()
@@ -160,10 +178,10 @@ class ProcessWidget(QGroupBox):
 
                         x = lambda: param.secondaryFunction(*[_param.value for _param in param.input])
                         y = lambda *_output: [_param.widget.setValue(output) for _param, output in zip(param.output,_output)]
-                        z = lambda *_: y(*x())
-                        z()
+                        param.funcCall = lambda *_: y(*x())
                         
-                        widget.stateChanged.connect(z)
+                        
+                        widget.stateChanged.connect(param.funcCall)
                         [widget.stateChanged.connect(lambda _bool, _param = _param: _param.widget.setEnabled(not _bool)) for _param in param.output]
                         widget.setChecked(param.default)
                         widget.stateChanged.connect(self.doProcessLater.set)
@@ -190,24 +208,32 @@ class ProcessWidget(QGroupBox):
         
     def doProcess(self):
         if self.doProcessLater.is_set():
-            self.setBackgroundGreen()
-            if self.func == None:
-                self.imageOut = self.imageIn
-            elif self.func.type == "imgReading":
-                self.imageOut = [self.func(target_file)]
-            elif self.func.type == "parameter":
-                imageParamList = [param for param in self.func.parameters if param.type == "image"]
-                for i, param in enumerate(imageParamList):
-                    param.setValue(self.imageIn[i])
-                inputDict = {param.name:param.value for param in self.func.parameters if param.type not in ["special_bool"]}
-                self.imageOut = self.func(**inputDict)
-                if type(self.imageOut) == tuple:
-                    self.imageOut = list(self.imageOut)
-                else:
-                    self.imageOut = [self.imageOut]
+            try:
+                self.setBackgroundGreen()
+                if self.func == None:
+                    self.imageOut = self.imageIn
+                elif self.func.type == "imgReading":
+                    self.imageOut = [self.func(target_file)]
+                elif self.func.type == "parameter":
+                    imageParamList = [param for param in self.func.parameters if param.type == "image"]
+                    for i, param in enumerate(imageParamList):
+                        param.setValue(self.imageIn[i])
+                    
+                    specialBoolList = [param for param in self.func.parameters if param.type == "special_bool"]
+                    for specialBool in specialBoolList:
+                        if specialBool.widget.isChecked():
+                            specialBool.funcCall()
+
+                    inputDict = {param.name:param.value for param in self.func.parameters if param.type not in ["special_bool"]}
+                    self.imageOut = self.func(**inputDict)
+                    if type(self.imageOut) == tuple:
+                        self.imageOut = list(self.imageOut)
+                    else:
+                        self.imageOut = [self.imageOut]
             
-            self.plot()
-            self.doProcessLater.clear()
+                self.plot()
+                self.doProcessLater.clear()
+            except TypeError: pass
             self.setBackgroundBlanc()
 
     def setBackgroundGreen(self):
@@ -251,6 +277,10 @@ class ProcessWidget(QGroupBox):
         self.setBackgroundGreen()
         self.saveImageOut.emit(self.imageOut)
         self.setBackgroundBlanc()
+    
+    def _closeWidget(self):
+        self.widgetWantClose = True
+        self.closeWidget.emit()
 
 if __name__ == '__main__':
     app = QApplication([])

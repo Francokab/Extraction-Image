@@ -22,10 +22,10 @@ class MainGUI(QTabWidget):
         self.tab1Scroll.setWidgetResizable(True)
         self.tab1Scroll.setWidget(self.tab1)
         self.setGeometry(0, 0, 1920, 1080)
-        self.addTab(self.tab1Scroll,"Tab1")
+        self.addTab(self.tab1Scroll,"Test d'algorithme")
 
         self.tab2 = imageListTab()
-        self.addTab(self.tab2, "Tab2")
+        self.addTab(self.tab2, "Comparaison d'image")
         self.tab1.saveImageOut.connect(self.tab2.savedImageHandler)
 
         self.showMaximized()

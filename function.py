@@ -5,6 +5,13 @@ import matplotlib.image as mpimg
 from decorator import timer
 from math import floor, ceil
 
+algoList = [
+    algo("canny","Filtre de Canny", "", ["readImageFromFile","imageToGrayNormalize","blurrImage","findGradient","nonMaxSuppression","thresholding","histeresis"])
+]
+
+for _algo in algoList:
+    ALGO_DICT[_algo.name] = _algo
+
 @imageReadingGUI
 @timer
 def readImageFromFile(target_file):
@@ -232,13 +239,16 @@ def computeOtsuCriteria(im, th):
 @secondaryFunction
 @timer
 def otsuMethod(im):
-    # testing all thresholds from 0 to the maximum of the image
-    threshold_range = np.arange(0,1,0.05)
-    criterias = [computeOtsuCriteria(im, th) for th in threshold_range]
+    if im is not None:
+        # testing all thresholds from 0 to the maximum of the image
+        threshold_range = np.arange(0,1,0.05)
+        criterias = [computeOtsuCriteria(im, th) for th in threshold_range]
 
-    # best threshold is the one minimizing the Otsu criteria
-    best_threshold = threshold_range[np.argmin(criterias)]
-    return best_threshold, best_threshold/2
+        # best threshold is the one minimizing the Otsu criteria
+        best_threshold = threshold_range[np.argmin(criterias)]
+        return best_threshold, best_threshold/2
+    else:
+        return 0.5, 0.25
 
 @timer
 def dericheFilter(img,a,b,c1,axis):
