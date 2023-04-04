@@ -28,8 +28,13 @@ def imageToGrayNormalize(img, cr = 0.2126, cg = 0.7152, cb = 0.0722):
     cb; Coef Bleu; proportion de de bleu qui et pris en compte pour calculer le gris; slider; 0.0722; [0.0, 1.0]
     end_parameter
     
-    Bonjour
-    Test
+    Les informations en couleurs d'une image sont souvent superflu, l'intensité lumineuse d'une image est suffisante pour faire les détection d'objet que l'on veut, \
+de plus cela permet de réduire le nombre de dimensions à considérer quand on fait nos calcul, il est donc souvent utile de prendre une version en Noir et blanc \
+de notre image.
+
+    La valeur finale d'un pixale va être déterminée à partir de la somme pondérée des 3 couleurs du pixel. \
+Comme chaque couleur n'est pas détecter par nos yeux (et nos caméras) avec la même force, on prend en compte chaque \
+couleur avec des proportions différentes, nottament le vert est énormément pris en compte
     """
     if len(img.shape)>2:
         r, g, b = img[:,:,0], img[:,:,1], img[:,:,2]
@@ -279,6 +284,56 @@ def fullDericheFilter(img,a1,a2,b,c):
     theta1 = dericheFilter(img,a1,b,c[0],1)
     theta2 = dericheFilter(theta1,a2,b,c[1],0)
     return theta2
+
+@parameterGUI
+def dericheBlurr(img, alpha):
+    """Flouttage de Deriche
+    img; Image; Image en entrée; image
+    alpha; Alpha; Inverse de l'intensité du flou; float; 1; [0.001, 10]
+    end_parameter
+
+    Comme le floutage gaussien, cette fonction permet de flouter une image mais au lieu \
+d'utiliser une convolution, elle utilise un filtre IIR (Filtre à réponse impulsionnelle infine) \
+de Deriche avec des valeurs bien défnie qui dépendent de exp(-alpha)
+    """
+    b = [2*np.exp(-alpha), -np.exp(-2*alpha)]
+    cst = (1-np.exp(-alpha))**2
+    k = cst/(1+alpha*b[0]+b[1])
+    a1 = [k, k*b[0]*(alpha-1)/2, k*b[0]*(alpha+1)/2, k*b[1]]
+    a0 = [0, 1, -1, 0]
+
+    #Blurr
+    blurred_image = fullDericheFilter(img,a1,a1,b,[1,1])
+    return blurred_image
+
+@parameterGUI
+def dericheGradient(img, alpha):
+    """Calculer le gradient avec la méthode de Deriche
+    img; Image; Image en entrée; image
+    alpha; Alpha; Alpha; float; 1; [0.001, 10]
+    end_parameter
+
+    Cette fonction permet de calculer le gradient selon x et selon y d'une image mais au lieu \
+d'utiliser une convolution, elle utilise un filtre IIR (Filtre à réponse impulsionnelle infine) \
+de Deriche avec des valeurs bien défnie qui dépendent de exp(-alpha)
+
+    Comme pour la manière conventionelle de trouver le gradient, on va ensuite prendre le gradient selon x et selong y \
+et calculer la norme et l'orientation du gradient pour chaque pixel
+    """
+    b = [2*np.exp(-alpha), -np.exp(-2*alpha)]
+    cst = (1-np.exp(-alpha))**2
+    k = cst/(1+alpha*b[0]+b[1])
+    a1 = [k, k*b[0]*(alpha-1)/2, k*b[0]*(alpha+1)/2, k*b[1]]
+    a0 = [0, 1, -1, 0]
+
+    #Finding the gradient of the image
+    gradient_x = fullDericheFilter(img,a0,a1,b,[-cst,1])
+    gradient_y = fullDericheFilter(img,a1,a0,b,[1,-cst])
+    gradient = (gradient_x**2 + gradient_y**2)**(1/2)
+    theta = np.arctan2(gradient_y,gradient_x)
+
+    return (gradient, theta)
+
 
 @timer
 def Laplacian(img):

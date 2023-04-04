@@ -43,6 +43,8 @@ def NImageToIndex(NImage,x,y,xmax,ymax):
 
 
 class imageWidget(QWidget):
+    closeWidget = pyqtSignal()
+
     def __init__(self, image, parent=None):
         super(imageWidget, self).__init__(parent)
 
@@ -53,8 +55,15 @@ class imageWidget(QWidget):
         self.mainLayout = QVBoxLayout()
         self.mainLayout.addWidget(self.canvas)
 
+        self.bottomLayout = QHBoxLayout()
         self.checkBox = QCheckBox("Inclure")
-        self.mainLayout.addWidget(self.checkBox)
+        self.bottomLayout.addWidget(self.checkBox)
+        self.removeButton = QPushButton("Suprime")
+        self.widgetWantClose = False
+        self.removeButton.clicked.connect(self.closeWidgetFunction)
+        self.bottomLayout.addWidget(self.removeButton)
+
+        self.mainLayout.addLayout(self.bottomLayout)
         self.setLayout(self.mainLayout)
         self.setContentsMargins(0,0,0,0)
         self.plot()
@@ -71,6 +80,10 @@ class imageWidget(QWidget):
         
         # refresh canvas
         self.canvas.draw()
+    
+    def closeWidgetFunction(self):
+        self.widgetWantClose = True
+        self.closeWidget.emit()
 
 class imageList(QWidget):
     def __init__(self, parent=None):
@@ -151,9 +164,17 @@ class imageListTab(QGroupBox):
         widget = imageWidget(image)
         widget.setFixedWidth(175)
         widget.checkBox.clicked.connect(self.updateImageToDraw)
+        widget.closeWidget.connect(self.closeWidgetHandler)
         self.imageList.imageWidgetList.append(widget)
         self.imageList.middleLayout.insertWidget(len(self.imageList.imageWidgetList)-1,widget)
     
+    def removeFromWidgetList(self,index):
+        widget = self.imageList.imageWidgetList.pop(index)
+        self.imageList.middleLayout.removeWidget(widget)
+        widget.deleteLater()
+        self.updateImageToDraw()
+
+
     def updateImageToDraw(self):
         self.imageToDraw = []
         for widget in self.imageList.imageWidgetList:
@@ -161,6 +182,14 @@ class imageListTab(QGroupBox):
                 self.imageToDraw.append(widget.image)
         
         self.plot()
+    
+    def closeWidgetHandler(self):
+        i = 0
+        while (len(self.imageList.imageWidgetList)>i):
+            if self.imageList.imageWidgetList[i].widgetWantClose:
+                self.removeFromWidgetList(i)
+            else:
+                i = i + 1
 
 
 if __name__ == '__main__':
