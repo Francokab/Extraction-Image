@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QCheckBox, QComboBox, QD
 from qt_material import apply_stylesheet
 import sys
 from ProcessTab import ProcessTab
+from imageListTab import imageListTab
 
 class MainGUI(QTabWidget):
     updateDatabaseSignal = pyqtSignal(list)
@@ -22,6 +23,11 @@ class MainGUI(QTabWidget):
         self.tab1Scroll.setWidget(self.tab1)
         self.setGeometry(0, 0, 1920, 1080)
         self.addTab(self.tab1Scroll,"Tab1")
+
+        self.tab2 = imageListTab()
+        self.addTab(self.tab2, "Tab2")
+        self.tab1.saveImageOut.connect(self.tab2.savedImageHandler)
+
         self.showMaximized()
 
 

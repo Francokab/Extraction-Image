@@ -21,6 +21,8 @@ class AddWidget(QWidget):
         self.setLayout(self.mainLayout)
 
 class ProcessTab(QWidget):
+    saveImageOut = pyqtSignal(list)
+
     def __init__(self, parent=None):
         super(ProcessTab, self).__init__(parent)
 
@@ -59,12 +61,13 @@ class ProcessTab(QWidget):
     @pyqtSlot()
     def addProcess(self):
         processWidget = ProcessWidget()
-        #processWidget   
-        #processWidget.setSizePolicy(QSizePolicy.Policy.Minimum,QSizePolicy.Policy.Preferred)
+        processWidget.saveImageOut.connect(self.savedImageHandler)
         self.widgetList.insert(len(self.widgetList)-1,processWidget)
         self.updateLayoutToList()
 
-
+    @pyqtSlot(list)
+    def savedImageHandler(self,image):
+        self.saveImageOut.emit(image)
 
 
 

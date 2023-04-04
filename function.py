@@ -49,9 +49,10 @@ def blurrImage(img,kernel_size = 5, sigma=1):
     kernel_size; Taille du noyau; Taille de la matrice gaussienne à appliquer; int; 5; [1, 31]
     sigma; Sigma; Intensité du flou crée par la matrice; float; 1; [0.01, 10]
     end_parameter
-    
-    Bonjour
-    Test
+
+    Cette fonction floutte la fonction que l'on a en entrée à l'aide d'un flou gaussien. 
+    Pour faire ça la fonction utilise une convolution entre l'image et une matrice gaussienne, la conséquence est que chaque point de l'image se retrouve diluer dans les points voisins. 
+    En théorie un flou gaussien prend en compte tout les points de l'image mais en pratique comme le poids de chaque des points descends de manière exponentielle avec la distance (c'est la partie gaussienne), on peut ce permettre de n'utiliser que une petite matrice.
     """
     gauss = gaussian_kernel(kernel_size,sigma=sigma)
     return sig.convolve2d(img,gauss,'same')
@@ -144,7 +145,7 @@ def nonMaxSuppression(img, D):
 @parameterGUI
 @timer
 def thresholding(img, high, low, out1 = 1.0, out2 = 0.5, out3 = 0.0):
-    """Double seuillage de l'immage
+    """Double seuillage de l'image
     img; Image; Image en entrée; image
     high; Seuil Haut; Les valeurs au dessus de ce seuil vont être mis à 1; float; 0.5; [0.0, 1.0]
     low; Seuil Bas; Les valeurs en dessous de ce seuil vont être mis à 0; float; 0.3; [0.0, 1.0]

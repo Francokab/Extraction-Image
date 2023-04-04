@@ -28,6 +28,7 @@ def clearLayout(layout):
                 clearLayout(child.layout())
 class ProcessWidget(QGroupBox):
     updateImageOut = pyqtSignal(list)
+    saveImageOut = pyqtSignal(list)
 
     def __init__(self, parent=None):
         super(ProcessWidget, self).__init__(parent)
@@ -68,6 +69,7 @@ class ProcessWidget(QGroupBox):
         self.bottomLayout = QGridLayout()
         self.resetBottomLayout()
         self.docInfo = QLabel()
+        self.docInfo.setWordWrap(True)
 
         #assemble all the layout together
         self.mainLayout = QVBoxLayout()
@@ -85,7 +87,9 @@ class ProcessWidget(QGroupBox):
         fullScreenButton = QPushButton("Full Screen")
         fullScreenButton.clicked.connect(self.putImageInFullScreen)
         self.bottomLayout.addWidget(fullScreenButton,0,0)
-        self.bottomLayout.addWidget(QLabel("Info"),0,1)
+        saveImageButton = QPushButton("Sauvergarder l'image")
+        saveImageButton.clicked.connect(self.saveImage)
+        self.bottomLayout.addWidget(saveImageButton,0,1)
         self.bottomLayout.setColumnStretch(0,1)
         self.bottomLayout.setColumnStretch(1,1)
 
@@ -184,7 +188,6 @@ class ProcessWidget(QGroupBox):
             self.topLayout.itemAt(2).widget().setToolTip("Selectionne une fonction à appliquer à l'étape précedente")
         self.doProcessLater.set()
         
-
     def doProcess(self):
         if self.doProcessLater.is_set():
             self.setBackgroundGreen()
@@ -243,6 +246,11 @@ class ProcessWidget(QGroupBox):
     def putImageInFullScreen(self):
         self.fullScreen = FullScreenImage(self.imageOut)
         self.fullScreen.show()
+    
+    def saveImage(self):
+        self.setBackgroundGreen()
+        self.saveImageOut.emit(self.imageOut)
+        self.setBackgroundBlanc()
 
 if __name__ == '__main__':
     app = QApplication([])
