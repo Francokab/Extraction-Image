@@ -236,6 +236,7 @@ class ProcessTab(QWidget):
     def applyAlgo(self, algo):
         if self.algo is not None:
             self.deleteAllWidgetList()
+            self.imgReadingWidget.docInfo.setText(self.algo.description)
             for funcString in self.algo.functionList:
                 self.addProcess()
                 self.widgetList[-1].imgProcessComboBox.setCurrentText(FUNCTION_DICT[funcString].displayName)

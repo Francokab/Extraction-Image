@@ -19,16 +19,32 @@ imageList = [
 for image in imageList:
     IMAGE_DICT[image[0]] = image[1]
 
+stringNaive = "L'approche naïve\n    Un bord peut être définie comme un changement brusque d'intensité dans l'image, \
+on va donc chercher chercher ces changement brusque. La façon la plus commune de détecter des changements brusques dans les valeurs \
+d'un objet mathématique est d'utiliser le gradient, c'est à dire justement l'objet qui nous dit à quel point l'image change de valeur en chanque point. \
+\n\n    On va aussi flouter l'image avant de calculer le gradient, afin de minimiser l'effet qu'a le bruit sur la detection de bord. \
+\n\n    En pratique juste utiliser le gradient pour trouver un bord n'est pas suffisant car la position exacte du bord reste encore un peu flou."
+
+stringCanny = "La méthode de Canny\n    Conçu par John F. Canny, cette méthode cherche à réduire l'épaisseur du bord à un seul pixel afin d'obtenir \
+la position du bord avec un meuilleur précision, pour ça il va chercher à garder seulement les maximums locaux de chaque bord. \
+\n\n    Cette méthode est bien plus efficace est permet de trouver les bords de l'image avec une plus grande précision."
+
+stringDeriche = "La méthode de Deriche\n    Conçupar Rachid Deriche, cette méthode ce base sur la méthode de Canny mais va utiliser une manière alternative \
+de trouver le gradient de flouter l'image, en effet il va utiliser un filtre à réponse impulsionelle infinie avec des coefficient choisie spécifiquement pour trouver \
+les valeurs qu'il veut"
+
+stringSUSAN = "TO DO"
+
 algoList = [
-    algo("naive","Aproche naïve", "", ["imageToGrayNormalize","blurrImage","findGradient"]),
-    algo("canny","Filtre de Canny", "", ["imageToGrayNormalize","blurrImage","findGradient","nonMaxSuppression","thresholding","histeresis"]),
-    algo("deriche","Filtre de Deriche", "", ["imageToGrayNormalize","dericheBlurr","dericheGradient","nonMaxSuppression","thresholding","histeresis"])
+    algo("naive","Aproche naïve", stringNaive, ["imageToGrayNormalize","blurrImage","findGradient"]),
+    algo("canny","Filtre de Canny", stringCanny, ["imageToGrayNormalize","blurrImage","findGradient","nonMaxSuppression","thresholding","histeresis"]),
+    algo("deriche","Filtre de Deriche", stringDeriche, ["imageToGrayNormalize","dericheBlurr","dericheGradient","nonMaxSuppression","thresholding","histeresis"]),
+    algo("SUSAN","Méthode SUSAN", stringSUSAN, ["imageToGrayNormalize","SUSANpart1","SUSANpart2"])
 ]
 
 for _algo in algoList:
     ALGO_DICT[_algo.name] = _algo
 
-@imageReadingGUI
 @timer
 def readImageFromFile(target_file):
     image = mpimg.imread(target_file)
@@ -345,6 +361,9 @@ def dericheBlurr(img, alpha):
     Comme le floutage gaussien, cette fonction permet de flouter une image mais au lieu \
 d'utiliser une convolution, elle utilise un filtre IIR (Filtre à réponse impulsionnelle infine) \
 de Deriche avec des valeurs bien défnie qui dépendent de exp(-alpha)
+
+    L'utilisation d'un filtre IIR fait que la méthode de Deriche peut très facilement \
+paralléliser lui permettant donc d'être utiliser avec autre chose que des processeurs qui ne peuvent faire que un calcul à la fois.
     """
     b = [2*np.exp(-alpha), -np.exp(-2*alpha)]
     cst = (1-np.exp(-alpha))**2
@@ -368,7 +387,10 @@ d'utiliser une convolution, elle utilise un filtre IIR (Filtre à réponse impul
 de Deriche avec des valeurs bien défnie qui dépendent de exp(-alpha)
 
     Comme pour la manière conventionelle de trouver le gradient, on va ensuite prendre le gradient selon x et selong y \
-et calculer la norme et l'orientation du gradient pour chaque pixel
+et calculer la norme et l'orientation du gradient pour chaque pixel.
+
+    L'utilisation d'un filtre IIR fait que la méthode de Deriche peut très facilement paralléliser \
+lui permettant donc d'être utiliser avec autre chose que des processeurs qui ne peuvent faire que un calcul à la fois.
     """
     b = [2*np.exp(-alpha), -np.exp(-2*alpha)]
     cst = (1-np.exp(-alpha))**2
@@ -384,8 +406,98 @@ et calculer la norme et l'orientation du gradient pour chaque pixel
 
     return (gradient, theta)
 
+@parameterGUI
+@timer
+def SUSANpart1(img, rmax = 3.4, t = 0.1, n = 6):
+    """SUSAN part 1
+    img; Image; Image en entrée; image
+    rmax; Rayon du masque; Rayon du masque circulaire permettant de décider quel point doit être prit en compte; float; 3.4; [0.5, 10]
+    t; Seuil; Seuil de la différence d'intensité; float; 0.05; [0.001, 1]
+    n; exposant; Valeur de l'exposant lors de l'exponentiation de la diférence d'intensité; int; 6; [0, 20]
+    end_parameter
+
+    Cette fonction applique la première partie de la méthode SUSAN (Smallest Univalue Segment Assimilating Nucleus). Pour chaque pixel de l'image, on va regarder les pixels voisins \
+à l'intérieur d'un masque circulaire. Pour chacun de ces pixels, on va regarder si la différence en intensité avec le pixel centrale \
+est inférieur à un certain seuil, si c'est le cas on prend le pixel en compte et si c'es tpas le cas on le prend pas compte. Ainsi, pour chaque \
+pixel de l'image, on va compter le nombre de pixel autour d'eux qui ont une intensité proche de la leur.
+
+    En pratique la méthode SUSAN va utiliser la fonction exp( -((I-I0)/t) ^ 6 ) pour donner la valeur à compter, cette fonctions est équivalents pour les valeurs \
+proches en intensité et valeur lointaine en intensité mais donne des meilleurs résultats pour les valeurs intermédiaires
+    """
+    imax, jmax = img.shape
+    halfWindowSize = floor(rmax)
+    mask = np.zeros((2*halfWindowSize+1,2*halfWindowSize+1))
+    for index, value in np.ndenumerate(mask):
+        if np.linalg.norm(np.array(index) - np.array([halfWindowSize,halfWindowSize])) < rmax:
+            mask[index] = 1
+    sliding_window = np.lib.stride_tricks.sliding_window_view(np.pad(img,halfWindowSize),mask.shape)
+    output = np.zeros(img.shape)
+    for index0, value0 in np.ndenumerate(img):
+        view = sliding_window[index0]
+        output[index0] = np.sum(mask * np.exp(- ((view - value0) / t)**n))
+    return output
+
+@parameterGUI
+@timer
+def SUSANpart2(img):
+    """SUSAN part 2
+    img; Image; Image en entrée; image
+    end_parameter
+
+    Cette fonction applique la deuxième partie de la méthode SUSAN (Smallest Univalue Segment Assimilating Nucleus). On commence par déterminer un "seuil géométrique" g \
+à qui l'on donne la valeur de Imax*3/4 avec Imax le pixel avec la valeur maximum que l'on a trouvé à l'étape précedente. On va ensuite, pour chaque pixel I, prendre la valeur \
+g - I, et si cette valeur est négative, on prend 0.
+
+    On ne va donc garder que les bords les plus important, ceux qui représente un grand changement d'intensité avec leur voisins.
+    """
+    output = np.zeros(img.shape)
+    g = 3* img.argmax()/4
+    for index, x in np.ndenumerate(img):
+        if x<g:
+            output[index] = g - x
+    return output
+
+@parameterGUI
+@timer
+def adaptiveThresholding(img, C = 0.05, radius = 50, gaussien = False, sigma = 1):
+    """Seuillage Adaptatif
+    img; Image; Image en entrée; image
+    C; Seuil; Rayon du masque circulaire permettant de décider quel point doit être prit en compte; float; 0.05; [-10, 10]
+    radius; Rayon du masque; Rayon du masque carré des valeurs à prendre en compte pour le seuillage; int; 50; [1, 500]
+    gaussien; Pondération gaussienne; Est-ce que l'on pondère la moyenne avec une gausienne; bool; False
+    sigma; Sigma; Intensité du flou crée par la matrice; float; 1; [0.01, 10]
+    end_parameter
+
+    Cette fonction applique un seuil à l'image, mais contrairement à un seuillage classique, on ne va pas comparer les pixels à seuil global, \
+on va comparer le pixel à un seuil local qui a comme valeur la moyenne des pixels voisins (à l'intérieur d'un masque carré). On peut aussi ajouter \
+une certaine constante à la moyenne avant de la prendre comme seuil.
+
+    On peut aussi choisir de prendre une moyenne pondérer par la fonction gaussienne, pour plus prendre en compte les valeurs proche.
+    """
+    imax, jmax = img.shape
+    halfWindowSize = floor(radius)
+    output = np.zeros(img.shape)
+    for index0, value0 in np.ndenumerate(img):
+        i0, j0 = index0
+        view = img[max(0,i0-halfWindowSize):min(imax,i0+halfWindowSize+1), max(0,j0-halfWindowSize):min(jmax,j0+halfWindowSize+1)]
+        if gaussien:
+            gauss = gaussian_kernel(view.shape,sigma=sigma)
+            view = view*gauss
+        mean = np.mean(view) + C
+        if mean < value0:
+            output[index0] = 1.0
+    return output
+
+@parameterGUI
 @timer
 def Laplacian(img):
+    """Laplacien 1
+    img; Image; Image en entrée; image
+    end_parameter
+
+    TO DO
+    Cette fonction est en cour de construction
+    """
     Kxx = np.array([[1, -2, 1]])
     Kxy = 0.25 * np.array([[-1, 0, 1], [0, 0, 0], [1, 0, -1]])
     Kyy = np.array([[1], [-2], [1]])
@@ -397,45 +509,16 @@ def Laplacian(img):
     Ly = sig.convolve2d(img,Ky,'same')
     return (Lx, Ly, Lxx, Lxy, Lyy)
 
+@parameterGUI
 @timer
 def Laplacian2(img):
+    """Laplacien 2
+    img; Image; Image en entrée; image
+    end_parameter
+
+    TO DO
+    Cette fonction est en cour de construction
+    """
     K = np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]])
     Lap = sig.convolve2d(img,K,'same')
     return (Lap)
-
-@timer
-def SUSANpart1(img, rmax = 3.4, t = 0.1):
-    imax, jmax = img.shape
-    halfWindowSize = floor(rmax)
-    mask = np.zeros((2*halfWindowSize+1,2*halfWindowSize+1))
-    for index, value in np.ndenumerate(mask):
-        if np.linalg.norm(np.array(index) - np.array([halfWindowSize,halfWindowSize])) < rmax:
-            mask[index] = 1
-    sliding_window = np.lib.stride_tricks.sliding_window_view(np.pad(img,halfWindowSize),mask.shape)
-    output = np.zeros(img.shape)
-    for index0, value0 in np.ndenumerate(img):
-        view = sliding_window[index0]
-        output[index0] = np.sum(mask * np.exp(- ((view - value0) / t)**6))
-    return output
-
-@timer
-def SUSANpart2(img):
-    output = np.zeros(img.shape)
-    g = 3* img.argmax()/4
-    for index, x in np.ndenumerate(img):
-        if x<g:
-            output[index] = g - x
-    return output
-
-@timer
-def adaptiveThresholding(img, C, radius):
-    imax, jmax = img.shape
-    halfWindowSize = floor(radius)
-    output = np.zeros(img.shape)
-    for index0, value0 in np.ndenumerate(img):
-        i0, j0 = index0
-        view = img[max(0,i0-halfWindowSize):min(imax,i0+halfWindowSize+1), max(0,j0-halfWindowSize):min(jmax,j0+halfWindowSize+1)]
-        mean = np.mean(view) - C
-        if mean < value0:
-            output[index0] = 1.0
-    return output

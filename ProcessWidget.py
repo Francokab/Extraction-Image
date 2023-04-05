@@ -130,9 +130,9 @@ class ProcessWidget(QGroupBox):
                         widget = QSpinBox()
                         param.widget = widget
                         widget.valueChanged.connect(param.setValue)
-                        widget.setValue(param.default)
                         widget.setMinimum(param.min)
                         widget.setMaximum(param.max)
+                        widget.setValue(param.default)
                         widget.valueChanged.connect(self.doProcessLater.set)
                         haveWidget = True
 
@@ -143,9 +143,9 @@ class ProcessWidget(QGroupBox):
                         widget.setDecimals(3)
                         widget.setStepType(QDoubleSpinBox.StepType.AdaptiveDecimalStepType)
                         widget.valueChanged.connect(param.setValue)
-                        widget.setValue(param.default)
                         widget.setMinimum(param.min)
                         widget.setMaximum(param.max)
+                        widget.setValue(param.default)
                         widget.valueChanged.connect(self.doProcessLater.set)
                         haveWidget = True
                     
@@ -153,9 +153,9 @@ class ProcessWidget(QGroupBox):
                         widget = QDoubleSlider(3,Qt.Horizontal)
                         param.widget = widget
                         widget.doubleValueChanged.connect(param.setValue)
-                        widget.setValue(param.default)
                         widget.setMinimum(param.min)
                         widget.setMaximum(param.max)
+                        widget.setValue(param.default)
                         widget.doubleValueChanged.connect(self.doProcessLater.set)
                         haveWidget = True
 
@@ -166,6 +166,14 @@ class ProcessWidget(QGroupBox):
                         widget.currentTextChanged.connect(param.setValue)
                         widget.setCurrentText(param.default)
                         widget.currentTextChanged.connect(self.doProcessLater.set)
+                        haveWidget = True
+
+                    elif param.type == "bool":
+                        widget = QCheckBox()
+                        param.widget = widget
+                        widget.stateChanged.connect(param.setValue)
+                        widget.setChecked(param.default)
+                        widget.stateChanged.connect(self.doProcessLater.set)
                         haveWidget = True
 
                     elif param.type == "special_bool":

@@ -60,7 +60,11 @@ class parameter:
             self.default = float(value)
         elif self.type == "list":
             self.default = value
-        elif self.type in ["special_bool"]:
+        elif self.type in ["special_bool", "bool"]:
+            if value == "True":
+                value = True
+            elif value == "False":
+                value = False
             self.default = bool(value)
 
     def setValue(self, value):
@@ -72,7 +76,7 @@ class parameter:
             self.value = float(value)
         elif self.type == "list":
             self.value = value
-        elif self.type in ["special_bool"]:
+        elif self.type in ["special_bool", "bool"]:
             self.default = bool(value)
     
     def setList(self, docString):
