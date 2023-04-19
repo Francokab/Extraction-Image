@@ -13,7 +13,11 @@ imageList = [
     ("Le Chat Botte","images\\Lechatbotte.jpg"),
     ("Medieval House","images\\medieval_house.jpg"),
     ("Sunflower","images\\Sunflowers_in_July.jpg"),
-    ("Valve","images\\Valve_original.png")
+    ("Valve","images\\Valve_original.png"),
+    ("Hamid","images\\hamid.jpg"),
+    ("Café","images\\cafe.jpg"),
+    ("Skittle","images\\caramelos_de_colores.jpg"),
+    ("Lion","images\\Lion_waiting_in_Namibia.jpg")
 ]
 
 for image in imageList:
